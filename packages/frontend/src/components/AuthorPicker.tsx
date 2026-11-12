@@ -23,7 +23,7 @@ export function AuthorPicker({
     <fieldset className="authors">
       <legend>Authors</legend>
       <p className="muted small">
-        An author can view and manage this item, the same as its creator.
+        Authors are credited on the item. Only its creator and editors can manage it.
       </p>
 
       {assignable.map((user: User) => (

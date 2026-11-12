@@ -20,9 +20,7 @@ const EVERY_ITEM: Prisma.ContentItemWhereInput = {};
 function visibleTo(user: User): Prisma.ContentItemWhereInput {
   if (user.role === 'editor') return EVERY_ITEM;
 
-  return {
-    OR: [{ createdBy: user.id }, { authorIds: { has: user.id } }],
-  };
+  return { createdBy: user.id };
 }
 
 export async function list(user: User): Promise<ContentItem[]> {

@@ -36,8 +36,8 @@ the three demo users. Open **http://localhost:8080** and sign in as
 
 1. As **Edith**, create an item. It starts as an **idea**.
 2. Move it **idea → draft → review → published**. Skipping a step is rejected.
-3. Assign **Carl Nguyen** as an author, then sign out and in as Carl: the item
-   is now in his list, and he can edit and publish it.
+3. Sign out and in as **Carl Nguyen** (contributor): Edith's item is not in his
+   list. Create one as Carl, then sign back in as Edith: she sees both.
 4. **Archive** it, then **Restore** it. The history panel shows every step and
    who did it.
 
@@ -209,11 +209,11 @@ matched against the hardcoded list in `packages/shared/src/users.ts`. There are
 no passwords. `GET /api/users` returns the list so the frontend can offer a
 "sign in as" picker.
 
-| User         | Role        | Sees                              |
-| ------------ | ----------- | --------------------------------- |
-| Edith Ortega | editor      | Every content item                |
-| Carl Nguyen  | contributor | Only items they created or author |
-| Priya Raman  | contributor | Only items they created or author |
+| User         | Role        | Sees                    |
+| ------------ | ----------- | ----------------------- |
+| Edith Ortega | editor      | Every content item      |
+| Carl Nguyen  | contributor | Only items they created |
+| Priya Raman  | contributor | Only items they created |
 
 ### API
 
@@ -289,7 +289,7 @@ Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code,
 | 2026-11-12 | The database schema lives in `packages/backend`, not in `shared`                | The browser talks to the API, never to Postgres, so `shared` keeps zero runtime dependencies. The cost is `serialize.ts`, which maps rows to the wire types — honest anyway, since JSON turns every `Date` into a string.                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | 2026-11-12 | Hand-written wire types in `shared`, checked against the schema at compile time | Prisma's generated types describe database rows: `createdAt` is a `Date`. What the browser receives is JSON, where it is an ISO string — so the frontend cannot reuse them, and `shared` cannot import `@prisma/client` without pulling a driver into the bundle. `shared` therefore declares the wire types itself and `serialize.ts` converts. To stop the two drifting, `backend/src/schema-contract.ts` asserts at compile time that the enum members and the field names match exactly, leaving each side to type its own values. Adding a column to the schema alone fails the backend build. It is types only and disappears at compile time. |
 | 2026-11-12 | Mock auth: `x-user-id` header against a hardcoded user list                     | No passwords or sessions to build for an assignment. The list is seeded into a `users` table so author and audit-actor ids are real foreign keys, and swapping in real auth means replacing one middleware.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| 2026-11-12 | Authors are assignable, and assignment grants access                            | Assigning a contributor as an author lets them see and manage the item exactly as its creator can — that is how work is handed over. One predicate decides it, used as the SQL filter for both the list and single-item reads, so the two cannot drift.                                                                                                                                                                                                                                                                                                                                                                                              |
+| 2026-11-13 | A contributor's "own" items are the ones they created; authors are credits only | The brief says a contributor manages only their own items, and own means created by them. Being listed as an author shows who worked on an item but grants no access, so a co-author who is a contributor cannot open it. This replaced an earlier rule where assignment granted access. One predicate decides it, used as the SQL filter for both the list and single-item reads.                                                                                                                                                                                                                                                                   |
 | 2026-11-12 | Routes hold no logic: thin HTTP adapters over a service layer                   | A route reads the request, calls a service and picks a status code — nothing else. Permissions, status transitions and audit writes live in `services/`, which knows nothing about HTTP, so the same calls would serve a CLI or a job queue. Services throw domain errors (`errors.ts`) that one middleware maps to status codes.                                                                                                                                                                                                                                                                                                                    |
 | 2026-11-12 | Readability comes from names and structure; the source carries no comments      | Functions are short and named for what they do, and each rule has one home. Comments were removed on 2026-11-13: the reasoning behind each choice lives in this table instead, so the code stays compact and the explanations sit in one place. The cost is that a subtle line (a `404` that hides existence, a filter pushed into SQL) no longer explains itself where it happens.                                                                                                                                                                                                                                                                  |
 | 2026-11-12 | Zod for request validation and `http-errors` for failures                       | Replaced ~130 lines of hand-rolled parsing and custom error classes with two well-known packages. Zod schemas are declarative and infer their own input types; `http-errors` is what Express itself uses. Two more dependencies, far less code to read or get wrong.                                                                                                                                                                                                                                                                                                                                                                                 |
