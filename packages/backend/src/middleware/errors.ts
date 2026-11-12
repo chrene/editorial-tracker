@@ -2,22 +2,30 @@ import type { NextFunction, Request, Response } from 'express';
 import createError, { isHttpError } from 'http-errors';
 import { Prisma } from '@prisma/client';
 
-function fromPrisma(err: unknown) {
-  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-    return createError.NotFound();
-  }
+const PRISMA_RECORD_NOT_FOUND = 'P2025';
+
+function isRowDeletedByAnotherRequestBeforeOurWrite(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === PRISMA_RECORD_NOT_FOUND
+  );
+}
+
+function toHttpError(err: unknown) {
+  if (isHttpError(err)) return err;
+  if (isRowDeletedByAnotherRequestBeforeOurWrite(err)) return createError.NotFound();
   return null;
 }
+
 export function errorHandler(
   err: unknown,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
-  const mapped = isHttpError(err) ? err : fromPrisma(err);
+  const httpError = toHttpError(err);
 
-  if (mapped && mapped.expose) {
-    res.status(mapped.status).json({ error: mapped.message });
+  if (httpError?.expose) {
+    res.status(httpError.status).json({ error: httpError.message });
     return;
   }
 

@@ -19,10 +19,13 @@ export function userName(users: User[], id: string | null): string {
   return users.find((u) => u.id === id)?.name ?? 'Unknown user';
 }
 
+function isStillBeingWorkedOn(item: ContentItem): boolean {
+  return item.status !== 'published' && item.status !== 'archived';
+}
+
 export function isOverdue(item: ContentItem): boolean {
   if (!item.deadline) return false;
-  if (item.status === 'published' || item.status === 'archived') return false;
-  return new Date(item.deadline) < new Date();
+  return isStillBeingWorkedOn(item) && new Date(item.deadline) < new Date();
 }
 
 export function allowedNextStatuses(status: ContentStatus): readonly ContentStatus[] {

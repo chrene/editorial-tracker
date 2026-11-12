@@ -104,7 +104,8 @@ function Actions({ item }: { item: ContentItem }) {
   const setStatus = useSetStatus(item.id);
   const next = allowedNextStatuses(item.status);
 
-  if (next.length === 0) return null;
+  const hasNoAllowedMoves = next.length === 0;
+  if (hasNoAllowedMoves) return null;
 
   return (
     <section className="actions">

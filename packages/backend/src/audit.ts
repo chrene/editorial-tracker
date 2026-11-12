@@ -4,16 +4,24 @@ import { db } from './db.js';
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-const TRACKED_FIELDS = ['title', 'type', 'status', 'authorIds', 'deadline'] as const;
+const FIELDS_A_PERSON_EDITS = ['title', 'type', 'status', 'authorIds', 'deadline'] as const;
+
+function isSameValueEvenForArrays(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function asPrismaJson(changes: Changes | null): Prisma.InputJsonValue | undefined {
+  return (changes ?? undefined) as Prisma.InputJsonValue | undefined;
+}
 
 export function diff(before: ContentItem, after: ContentItem): Changes {
   const changes: Changes = {};
 
-  for (const field of TRACKED_FIELDS) {
+  for (const field of FIELDS_A_PERSON_EDITS) {
     const from = before[field];
     const to = after[field];
 
-    if (JSON.stringify(from) !== JSON.stringify(to)) {
+    if (!isSameValueEvenForArrays(from, to)) {
       changes[field] = { from, to };
     }
   }
@@ -29,12 +37,6 @@ export async function record(
   client: Db = db,
 ): Promise<void> {
   await client.auditLog.create({
-    data: {
-      contentItemId,
-      actorId,
-      action,
-
-      changes: (changes ?? undefined) as Prisma.InputJsonValue | undefined,
-    },
+    data: { contentItemId, actorId, action, changes: asPrismaJson(changes) },
   });
 }

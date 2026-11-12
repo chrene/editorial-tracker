@@ -15,8 +15,10 @@ import type { CreateContentInput, UpdateContentInput } from '../validation.js';
 
 type ContentPatch = Prisma.ContentItemUncheckedUpdateInput;
 
+const EVERY_ITEM: Prisma.ContentItemWhereInput = {};
+
 function visibleTo(user: User): Prisma.ContentItemWhereInput {
-  if (user.role === 'editor') return {};
+  if (user.role === 'editor') return EVERY_ITEM;
 
   return {
     OR: [{ createdBy: user.id }, { authorIds: { has: user.id } }],
@@ -82,7 +84,8 @@ export async function updateStatus(
 ): Promise<ContentItem> {
   const before = await get(user, id);
 
-  if (next === before.status) return before;
+  const isAlreadyInRequestedStatus = next === before.status;
+  if (isAlreadyInRequestedStatus) return before;
 
   return save(user, before, statusChange(user, before, next));
 }
@@ -122,15 +125,19 @@ function statusChange(user: User, before: ContentItem, next: ContentStatus): Con
   const now = new Date();
   const patch: ContentPatch = { status: next };
 
-  if (next === 'published' && before.publishedAt === null) {
+  const isFirstTimePublished = next === 'published' && before.publishedAt === null;
+  const isEnteringArchive = next === 'archived';
+  const isLeavingArchive = before.status === 'archived';
+
+  if (isFirstTimePublished) {
     patch.publishedAt = now;
     patch.publishedBy = user.id;
   }
 
-  if (next === 'archived') {
+  if (isEnteringArchive) {
     patch.archivedAt = now;
     patch.archivedBy = user.id;
-  } else if (before.status === 'archived') {
+  } else if (isLeavingArchive) {
     patch.archivedAt = null;
     patch.archivedBy = null;
   }

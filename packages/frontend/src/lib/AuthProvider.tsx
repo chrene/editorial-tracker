@@ -12,11 +12,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(next);
   }
 
+  function forgetPreviousUsersCachedContent() {
+    queryClient.clear();
+  }
+
   function signOut() {
     sessionStorage.removeItem(STORAGE_KEY);
     setUser(null);
-
-    queryClient.clear();
+    forgetPreviousUsersCachedContent();
   }
 
   return <AuthContext value={{ user, signIn, signOut }}>{children}</AuthContext>;
