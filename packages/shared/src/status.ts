@@ -5,7 +5,6 @@ export const STATUS_TRANSITIONS: Record<ContentStatus, readonly ContentStatus[]>
   draft: ['idea', 'review'],
   review: ['draft', 'published'],
   published: ['archived'],
-
   archived: ['published', 'draft'],
 };
 

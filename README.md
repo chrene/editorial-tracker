@@ -1,4 +1,10 @@
-# editorial-tracker
+# Editorial Tracker
+
+A small editorial workflow tool. Editors and contributors sign in, create
+articles and videos, and move them from idea to publication. Every change is
+recorded in a per-item history.
+
+Built with React, Express, Prisma and PostgreSQL in a pnpm workspace.
 
 ## Use of AI
 
@@ -9,306 +15,193 @@ the repo and I can explain any of it.
 
 ## Quickstart
 
-From a clean checkout, with Docker running and pnpm installed:
+With Docker running and pnpm installed:
 
 ```bash
 pnpm docker:start
 ```
 
-That builds and starts the app, API and Postgres, creates the tables and adds
-the three demo users. Open **http://localhost:8080** and sign in as
-**Edith Ortega** (editor).
-
-| Script                | Does                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------ |
-| `pnpm docker:start`   | `docker:up` followed by `docker:setup`                                               |
-| `pnpm docker:up`      | Build and start all three services                                                   |
-| `pnpm docker:rebuild` | Rebuild the app and API after a code change and restart them; Postgres keeps running |
-| `pnpm docker:setup`   | Create the tables and seed the demo users (safe to re-run)                           |
-| `pnpm docker:db`      | Start only Postgres, for local development with `pnpm dev`                           |
-| `pnpm docker:logs`    | Follow the logs of all services                                                      |
-| `pnpm docker:down`    | Stop and remove the containers; the data volume is kept                              |
-
-> `docker:up` alone leaves a new database empty: the login screen loads (its
-> roster is hardcoded) and the first content request then fails. Run
-> `docker:setup` once, or use `docker:start`.
+This builds and starts the app, API and Postgres, creates the tables and adds
+three demo users. Open **http://localhost:8080** and pick a user. There are no
+passwords.
 
 ### A two-minute tour
 
-1. As **Edith**, create an item. It starts as an **idea**.
+1. Sign in as **Edith Ortega** (editor) and create an item. It starts as an **idea**.
 2. Move it **idea → draft → review → published**. Skipping a step is rejected.
-3. Sign out and in as **Carl Nguyen** (contributor): Edith's item is not in his
-   list. Create one as Carl, then sign back in as Edith: she sees both.
-4. **Archive** it, then **Restore** it. The history panel shows every step and
-   who did it.
+3. Sign in as **Carl Nguyen** (contributor). Edith's item is not in his list.
+   Create one as Carl, then sign back in as Edith: she sees both.
+4. **Archive** an item, then **Restore** it. The history panel shows every step
+   and who took it.
 
-## Workspace
+## How it works
 
-pnpm workspace with three packages:
+### Roles
 
-| Package                       | Path                | What it is                  |
-| ----------------------------- | ------------------- | --------------------------- |
-| `@editorial-tracker/frontend` | `packages/frontend` | React app (Vite)            |
-| `@editorial-tracker/backend`  | `packages/backend`  | Express API                 |
-| `@editorial-tracker/shared`   | `packages/shared`   | Types and code used by both |
-
-## Setup
-
-### 1. Install Node.js 26
-
-The required version is in `.nvmrc`. With `nvm` or `fnm`:
-
-```bash
-nvm install && nvm use
-```
-
-Or install Node 26 LTS from https://nodejs.org.
-
-Check it works:
-
-```bash
-node -v
-```
-
-### 2. Install pnpm
-
-macOS, with Homebrew:
-
-```bash
-brew install pnpm
-```
-
-macOS or Linux, with the official installer:
-
-```bash
-curl -fsSL https://get.pnpm.io/install.sh | sh -
-```
-
-Windows, in PowerShell:
-
-```powershell
-iwr https://get.pnpm.io/install.ps1 -useb | iex
-```
-
-Check it works:
-
-```bash
-pnpm -v
-```
-
-The exact pnpm version doesn't matter. `package.json` pins the version for this project (`devEngines.packageManager`), and pnpm downloads that version on its own when the one you have differs.
-
-### 3. Install dependencies
-
-From the repo root:
-
-```bash
-pnpm install
-```
-
-### 4. Approve build scripts (only when asked)
-
-pnpm blocks dependencies from running install scripts unless they are approved. Approved packages are listed in `pnpm-workspace.yaml`, which is committed to the repo. A fresh clone needs no extra steps.
-
-If `pnpm install` or `pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`:
-
-1. Run:
-
-   ```bash
-   pnpm approve-builds
-   ```
-
-2. Select only the packages you trust (for example `esbuild`).
-3. Run `pnpm install` again.
-4. Commit the updated `pnpm-workspace.yaml` so others don't have to repeat this.
-
-## Running locally
-
-The two options below serve the app on **different ports**. Which one you are
-running decides which URL to open.
-
-### Option A: everything in Docker
-
-The app is served by nginx on **http://localhost:8080**, not 5173.
-
-| What     | URL                                          |
-| -------- | -------------------------------------------- |
-| App      | http://localhost:8080                        |
-| API      | http://localhost:8080/api/health (via nginx) |
-| Postgres | `localhost:5432`                             |
-
-Code changes do **not** appear until you rebuild the image:
-`docker compose up -d --build frontend`. For a fast edit loop, use Option B.
-
-Run from the repo root.
-
-| Task                                    | Command                                                         |
-| --------------------------------------- | --------------------------------------------------------------- |
-| Start everything (rebuild images)       | `docker compose up -d --build`                                  |
-| Start only Postgres                     | `docker compose up -d db`                                       |
-| Show running services                   | `docker compose ps`                                             |
-| Follow logs for all services            | `docker compose logs -f`                                        |
-| Follow logs for one service             | `docker compose logs -f backend`                                |
-| Rebuild and restart one service         | `docker compose up -d --build backend`                          |
-| Restart one service (no rebuild)        | `docker compose restart backend`                                |
-| Open a Postgres shell                   | `docker compose exec db psql -U editorial -d editorial_tracker` |
-| Stop and remove containers (keeps data) | `docker compose down`                                           |
-| Stop and **delete the database**        | `docker compose down -v`                                        |
-
-Service names: `db`, `backend`, `frontend`.
-
-> `docker compose down -v` deletes the `pgdata` volume. All database data is lost and cannot be recovered.
-
-### Option B: apps on your machine, Postgres in Docker
-
-Use this for day-to-day development. Code changes reload instantly.
-
-1. Create `packages/backend/.env`:
-
-   ```
-   DATABASE_URL=postgres://editorial:editorial@localhost:5432/editorial_tracker
-   ```
-
-2. Start only Postgres:
-
-   ```bash
-   docker compose up -d db
-   ```
-
-3. Start the apps:
-
-   ```bash
-   pnpm dev
-   ```
-
-- App: http://localhost:5173 (Vite, hot reloads on save)
-- API: http://localhost:5173/api/health (proxied to Express on port 3000)
-
-Nothing runs on 8080 in this mode. Stop the Docker `backend` container first, or
-it will hold port 3000: `docker compose stop backend frontend`.
-
-## Database
-
-There are no migration files. The schema lives in `packages/backend/prisma/schema.prisma`
-and is applied by diffing it against the running database.
-
-From `packages/backend`, with Postgres up:
-
-| Task                             | Command          |
-| -------------------------------- | ---------------- |
-| Apply the schema to the database | `pnpm db:push`   |
-| Seed the hardcoded users         | `pnpm db:seed`   |
-| Browse the data in a UI          | `pnpm db:studio` |
-
-Run `db:push` then `db:seed` once after first starting Postgres, and `db:push`
-again whenever `schema.prisma` changes.
-
-### Signing in
-
-Authentication is mocked: a request names its user with an `x-user-id` header,
-matched against the hardcoded list in `packages/shared/src/users.ts`. There are
-no passwords. `GET /api/users` returns the list so the frontend can offer a
-"sign in as" picker.
-
-| User         | Role        | Sees                    |
+| User         | Role        | Can see and manage      |
 | ------------ | ----------- | ----------------------- |
 | Edith Ortega | editor      | Every content item      |
 | Carl Nguyen  | contributor | Only items they created |
 | Priya Raman  | contributor | Only items they created |
 
+Sign-in is simulated: you pick who you are, and the API applies that user's
+role to every request.
+
+### Workflow
+
+| From        | Can move to          |
+| ----------- | -------------------- |
+| `idea`      | `draft`              |
+| `draft`     | `idea`, `review`     |
+| `review`    | `draft`, `published` |
+| `published` | `archived`           |
+| `archived`  | `published`, `draft` |
+
+Any other move is rejected with `409`. The item view only shows the moves the
+current status allows.
+
+### Screens
+
+| Screen       | Path           | What it does                                                                                       |
+| ------------ | -------------- | -------------------------------------------------------------------------------------------------- |
+| Login        | `/login`       | Pick a demo user                                                                                   |
+| Dashboard    | `/`            | Items grouped and filterable by status, with creator, authors and deadline; form to create an item |
+| Content item | `/content/:id` | Publish, archive, restore, edit, and the item's full history                                       |
+
+Overdue deadlines are shown in red while an item is still in progress.
+
+## Assumptions
+
+| Topic      | Assumption                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Sign-in    | Users pick a demo identity. There are no passwords or sessions.                                                    |
+| Ownership  | A contributor's "own" items are the ones they created. Being listed as an author is a credit and grants no access. |
+| Publishing | A contributor can move their own items through the whole workflow, including publishing and archiving.             |
+| Publish    | Publishing records a workflow state. Nothing is sent to a live site.                                               |
+| Timestamps | `publishedAt` is when an item first went live and survives a restore. `archivedAt` is cleared on restore.          |
+| Content    | Types are Article and Video. Deadlines are optional. The creator is stored separately from extra authors.          |
+
+## Known limitations
+
+- **No automated tests.** Behaviour was checked by hand against the running API.
+- **No real authentication.** The API trusts the `x-user-id` header.
+- **No migration history.** The schema is applied with `prisma db push`.
+- **Large backend image (~970MB).** It runs TypeScript through `tsx` and ships dev dependencies.
+
+## Running it
+
+### With Docker
+
+All commands run from the repo root.
+
+| Script                | Does                                                                |
+| --------------------- | ------------------------------------------------------------------- |
+| `pnpm docker:start`   | `docker:up` followed by `docker:setup`                              |
+| `pnpm docker:up`      | Build and start the app, API and Postgres                           |
+| `pnpm docker:setup`   | Create the tables and seed the demo users (safe to re-run)          |
+| `pnpm docker:rebuild` | Rebuild the app and API after a code change; Postgres keeps running |
+| `pnpm docker:db`      | Start only Postgres                                                 |
+| `pnpm docker:logs`    | Follow the logs of all services                                     |
+| `pnpm docker:down`    | Stop and remove the containers; the database is kept                |
+
+The app is on **http://localhost:8080**, and the API on
+http://localhost:8080/api via nginx. `docker compose down -v` deletes the
+database volume for good.
+
+### For development
+
+Needs Node 26 (`nvm use` reads `.nvmrc`) and pnpm (`brew install pnpm`, or see
+https://pnpm.io/installation).
+
+```bash
+pnpm install
+pnpm docker:db
+pnpm --filter @editorial-tracker/backend db:push
+pnpm --filter @editorial-tracker/backend db:seed
+pnpm dev
+```
+
+The app runs on **http://localhost:5173** with hot reload, and proxies `/api`
+to Express on port 3000. If the full Docker stack is running, stop it first
+with `pnpm docker:down`, because its backend holds port 3000.
+
+| Task                | Command                                              |
+| ------------------- | ---------------------------------------------------- |
+| Lint                | `pnpm lint`                                          |
+| Format              | `pnpm format`                                        |
+| Check formatting    | `pnpm format:check`                                  |
+| Browse the database | `pnpm --filter @editorial-tracker/backend db:studio` |
+
+## Where things live
+
+| Package             | Contains                                              |
+| ------------------- | ----------------------------------------------------- |
+| `packages/frontend` | React app (Vite)                                      |
+| `packages/backend`  | Express API and Prisma schema                         |
+| `packages/shared`   | Wire types, status rules and demo users, used by both |
+
+| Rule or concern             | File                                                      |
+| --------------------------- | --------------------------------------------------------- |
+| Allowed status moves        | `packages/shared/src/status.ts`                           |
+| Who can see and manage what | `visibleTo` in `packages/backend/src/services/content.ts` |
+| Request validation          | `packages/backend/src/validation.ts`                      |
+| Errors to status codes      | `packages/backend/src/middleware/errors.ts`               |
+| Audit log                   | `packages/backend/src/audit.ts`                           |
+| Database schema             | `packages/backend/prisma/schema.prisma`                   |
+| Wire types                  | `packages/shared/src/types.ts`                            |
+| Demo users                  | `packages/shared/src/users.ts`                            |
+
 ### API
 
-All routes need an `x-user-id` header and return only what that user may see.
+Every route except `/api/health` and `/api/users` needs an `x-user-id` header
+and returns only what that user may see. A hidden item answers `404`, the
+same as a missing one.
 
-| Method   | Path                      | Does                                     |
-| -------- | ------------------------- | ---------------------------------------- |
-| `GET`    | `/api/content`            | All content items visible to the caller  |
-| `POST`   | `/api/content`            | Create an item (starts at `idea`)        |
-| `PATCH`  | `/api/content/:id`        | Edit title, type, authors or deadline    |
-| `PATCH`  | `/api/content/:id/status` | Move the item to a new status            |
-| `DELETE` | `/api/content/:id`        | Delete the item; its audit history stays |
-| `GET`    | `/api/content/:id/audit`  | Change history for one item              |
-| `GET`    | `/api/users`              | The hardcoded user list                  |
-
-Status moves follow `idea -> draft -> review -> published -> archived`.
-`draft` and `review` can step back, and an archived item can be restored to
-`published` or sent back to `draft`. Anything else returns `409`.
-
-### Using the app
-
-Open the app and pick a user — there are no passwords. The URL depends on how
-you started it: **http://localhost:8080** for Option A (Docker), or
-**http://localhost:5173** for Option B (Vite).
-
-| Screen       | Path           | What it does                                                      |
-| ------------ | -------------- | ----------------------------------------------------------------- |
-| Login        | `/login`       | Pick a demo user; the role decides what you can reach             |
-| Dashboard    | `/`            | Items grouped by status and filterable, with creator and deadline |
-| Content item | `/content/:id` | Publish, edit, archive, and the item's full history               |
-
-The dashboard's create form is on the right. Overdue deadlines are marked in red,
-and only statuses the state machine allows appear as buttons on an item.
-
-## Code style
-
-ESLint and Prettier are configured once at the repo root and cover all three packages. ESLint catches bugs; Prettier owns formatting. They don't overlap — `eslint-config-prettier` turns off every ESLint rule that would argue about layout.
-
-Run from the repo root:
-
-| Task                           | Command             |
-| ------------------------------ | ------------------- |
-| Check for lint errors          | `pnpm lint`         |
-| Fix what ESLint can fix        | `pnpm lint:fix`     |
-| Format every file              | `pnpm format`       |
-| Check formatting without edits | `pnpm format:check` |
-
-Config files:
-
-- `eslint.config.js` — flat config. TypeScript rules everywhere, React hooks and fast-refresh rules for `packages/frontend` only, Node globals for `packages/backend` and `packages/shared`.
-- `.prettierrc` — single quotes, semicolons, trailing commas, 100-character lines.
-- `.prettierignore` — skips `dist`, `node_modules` and the lockfile.
-
-Both tools run from the root, so individual packages have no lint config or lint dependencies of their own. Add new rules in `eslint.config.js`.
-
-Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code, install the Prettier extension and set it as the default formatter.
+| Method   | Path                      | Does                                  |
+| -------- | ------------------------- | ------------------------------------- |
+| `GET`    | `/api/users`              | The demo users, for the login screen  |
+| `GET`    | `/api/content`            | Items visible to the caller           |
+| `POST`   | `/api/content`            | Create an item; it starts at `idea`   |
+| `GET`    | `/api/content/:id`        | One item                              |
+| `PATCH`  | `/api/content/:id`        | Edit title, type, authors or deadline |
+| `PATCH`  | `/api/content/:id/status` | Move the item to a new status         |
+| `DELETE` | `/api/content/:id`        | Delete the item; its history is kept  |
+| `GET`    | `/api/content/:id/audit`  | The item's change history             |
 
 ## Architecture decisions
 
-| Date       | Decision                                                                        | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-12 | pnpm workspace with `frontend`, `backend` and `shared` packages                 | Types shared between the React app and the API without publishing anything. Costs a workspace tool the whole team has to install.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 2026-11-12 | `shared` exports TypeScript source directly, with no build step                 | No build to run or watch before the other packages see a change. Only works because both consumers compile TS themselves.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| 2026-11-12 | Postgres in Docker, apps on the host for day-to-day work                        | Instant reload on code changes while the database stays disposable. Full `docker compose up` stays available for a production-like run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 2026-11-12 | One ESLint and Prettier config at the repo root, not per package                | One version of each tool and one place to add rules. Packages cannot diverge, which is the point.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 2026-11-12 | Root `typescript` pinned to 6.x for linting; backend builds on TS 7             | `typescript-eslint` 8.x refuses TS 7. Keeps linting working without holding the backend back.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 2026-11-12 | `npm` kept in the Dockerfile only to install pnpm                               | `node:26-slim` ships no corepack, curl or wget. The npm-free route costs an apt-get layer, which is not worth it for one bootstrap line.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| 2026-11-13 | The backend image runs TypeScript through `tsx`, with no compile step           | One source of truth and nothing to build, which suits a demo. The cost is real: `tsx` is a devDependency, so the image ships the full dev toolchain at ~970MB against the frontend's 50MB, and startup transpiles. A deployed service would compile to JavaScript and install production dependencies only. Two orderings in the `Dockerfile` are load-bearing: `NODE_ENV=production` is set after `pnpm install` (otherwise pnpm skips devDependencies and `tsx` is missing at boot), and the Prisma schema is copied before it (the postinstall `prisma generate` needs it).                                                                       |
-| 2026-11-12 | Prisma as the ORM, with `prisma db push` and no migration files                 | Replaced Drizzle after building both and comparing them. The query code reads better — `db.contentItem.update({ where, data })` instead of a builder chain ending in `.returning()` — which is why it was changed. It costs a `prisma generate` codegen step, a `prisma.config.ts` that repeats the connection string, and a Node-version warning. The service file came out 2 lines shorter, so this was a readability call, not a size one.                                                                                                                                                                                                        |
-| 2026-11-12 | Audit columns on `content_items` **and** an append-only `audit_log` table       | "Who published this" stays a single column read, while the log answers "what changed, when, by whom" — which an editorial team actually needs. Costs a second write on every mutation.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| 2026-11-12 | Content type as a Postgres enum, not a lookup table                             | Two known values, and the `'article' \| 'video'` union reaches the frontend so a typo is a compile error. Adding a type means a schema edit and a push, not an INSERT.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| 2026-11-12 | `status` is an explicit state machine; `publishedAt` is only a by-product       | Transitions are declared in `packages/shared/src/status.ts`, so `idea` cannot jump to `review`. Status is the single source of truth for whether an item is live — deriving it from `publishedAt` would let an item sit on `review` while carrying a publish timestamp.                                                                                                                                                                                                                                                                                                                                                                              |
-| 2026-11-12 | The database schema lives in `packages/backend`, not in `shared`                | The browser talks to the API, never to Postgres, so `shared` keeps zero runtime dependencies. The cost is `serialize.ts`, which maps rows to the wire types — honest anyway, since JSON turns every `Date` into a string.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| 2026-11-12 | Hand-written wire types in `shared`, checked against the schema at compile time | Prisma's generated types describe database rows: `createdAt` is a `Date`. What the browser receives is JSON, where it is an ISO string — so the frontend cannot reuse them, and `shared` cannot import `@prisma/client` without pulling a driver into the bundle. `shared` therefore declares the wire types itself and `serialize.ts` converts. To stop the two drifting, `backend/src/schema-contract.ts` asserts at compile time that the enum members and the field names match exactly, leaving each side to type its own values. Adding a column to the schema alone fails the backend build. It is types only and disappears at compile time. |
-| 2026-11-12 | Mock auth: `x-user-id` header against a hardcoded user list                     | No passwords or sessions to build for an assignment. The list is seeded into a `users` table so author and audit-actor ids are real foreign keys, and swapping in real auth means replacing one middleware.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| 2026-11-13 | A contributor's "own" items are the ones they created; authors are credits only | The brief says a contributor manages only their own items, and own means created by them. Being listed as an author shows who worked on an item but grants no access, so a co-author who is a contributor cannot open it. This replaced an earlier rule where assignment granted access. One predicate decides it, used as the SQL filter for both the list and single-item reads.                                                                                                                                                                                                                                                                   |
-| 2026-11-12 | Routes hold no logic: thin HTTP adapters over a service layer                   | A route reads the request, calls a service and picks a status code — nothing else. Permissions, status transitions and audit writes live in `services/`, which knows nothing about HTTP, so the same calls would serve a CLI or a job queue. Services throw domain errors (`errors.ts`) that one middleware maps to status codes.                                                                                                                                                                                                                                                                                                                    |
-| 2026-11-12 | Readability comes from names and structure; the source carries no comments      | Functions are short and named for what they do, and each rule has one home. Comments were removed on 2026-11-13: the reasoning behind each choice lives in this table instead, so the code stays compact and the explanations sit in one place. The cost is that a subtle line (a `404` that hides existence, a filter pushed into SQL) no longer explains itself where it happens.                                                                                                                                                                                                                                                                  |
-| 2026-11-12 | Zod for request validation and `http-errors` for failures                       | Replaced ~130 lines of hand-rolled parsing and custom error classes with two well-known packages. Zod schemas are declarative and infer their own input types; `http-errors` is what Express itself uses. Two more dependencies, far less code to read or get wrong.                                                                                                                                                                                                                                                                                                                                                                                 |
-| 2026-11-12 | A status move has its own endpoint: `PATCH /content/:id/status`                 | A transition is checked against the state machine and stamps who published or archived — not a field edit. `status` was removed from the general `PATCH` body so there is exactly one way to move an item, and one place that rule lives.                                                                                                                                                                                                                                                                                                                                                                                                            |
-| 2026-11-12 | Archiving is reversible; `publishedAt` means _first_ published                  | An archived item can be restored to `published` or sent back to `draft` — archiving is a shelf, not a grave. `archivedAt` is written on the way in and cleared on the way out, so a restored item cannot still claim it is archived. `publishedAt` is never overwritten: it answers "when did this first go live", and the audit log records the restore. Re-sending the status an item already has is a no-op, so nothing is stamped without a matching history entry.                                                                                                                                                                              |
-| 2026-11-12 | React Router and TanStack Query on the frontend                                 | Query owns loading, error and refetch state, so publishing an item refreshes the dashboard and the item view on its own — no screen has to remember to refetch. Router keeps `/content/:id` a real URL that survives a refresh. Two dependencies instead of hand-rolled `useEffect` fetching in every screen.                                                                                                                                                                                                                                                                                                                                        |
-| 2026-11-12 | One plain CSS stylesheet, no CSS framework                                      | Five screens do not need a framework or a build plugin. Tokens live in `:root` and the markup stays readable. Would not scale to a large app; it is not meant to.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 2026-11-12 | Login is a user picker; the choice sits in `sessionStorage`                     | Matches the mocked backend auth — no passwords exist, so "signing in" is choosing who you are. `sessionStorage` stops a refresh from logging you out. Swapping in real auth means replacing `AuthProvider` and the `x-user-id` header in `lib/api.ts`.                                                                                                                                                                                                                                                                                                                                                                                               |
-| 2026-11-12 | `GET /api/users` is public; everything else needs a user                        | The login screen must list the users before anyone is signed in. The list is the hardcoded demo roster and holds no secrets. `/api/content` stays behind the auth middleware.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Date       | Decision                                                                       | Why                                                                                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-12 | pnpm workspace with `frontend`, `backend` and `shared` packages                | Types are shared between the React app and the API without publishing anything. Costs a workspace tool everyone has to install.                                                                                                                                                         |
+| 2026-11-12 | `shared` exports TypeScript source directly, with no build step                | Both consumers compile TypeScript themselves, so a change is picked up without a build or a watcher.                                                                                                                                                                                    |
+| 2026-11-12 | Postgres in Docker, apps on the host for development                           | Hot reload on code changes while the database stays disposable. The full Docker stack is there for a production-like run.                                                                                                                                                               |
+| 2026-11-12 | One ESLint and Prettier config at the repo root                                | One version of each tool and one place to add rules, so packages cannot diverge.                                                                                                                                                                                                        |
+| 2026-11-12 | Root `typescript` pinned to 6.x for linting; the backend builds on TS 7        | `typescript-eslint` 8 refuses TS 7. This keeps linting working without holding the backend back.                                                                                                                                                                                        |
+| 2026-11-12 | `npm` used in the Dockerfile only to install pnpm                              | `node:26-slim` ships without corepack, curl or wget. The npm-free route costs an extra apt-get layer for one bootstrap line.                                                                                                                                                            |
+| 2026-11-12 | Prisma as the ORM, with `prisma db push` and no migration files                | Chosen after building the backend with both Drizzle and Prisma. Prisma's queries read better: `db.contentItem.update({ where, data })` instead of a builder chain. Costs a `prisma generate` step, a `prisma.config.ts` that repeats the connection string, and a Node-version warning. |
+| 2026-11-12 | Audit columns on `content_items` plus an append-only `audit_log` table         | "Who published this" stays a single column read, and the log answers what changed, when and by whom. Each write commits the row and its log entry in one transaction, so the log has no gaps.                                                                                           |
+| 2026-11-12 | Content type as a Postgres enum, not a lookup table                            | Two known values, and the `'article' \| 'video'` union reaches the frontend, so a typo is a compile error. Adding a type means a schema change, not an INSERT.                                                                                                                          |
+| 2026-11-12 | `status` is an explicit state machine and the only source of truth             | Transitions are declared once in `status.ts`. Timestamps record when moves happened but never decide the status, so an item cannot sit on `review` while carrying a publish date.                                                                                                       |
+| 2026-11-12 | Archiving is reversible; `publishedAt` means first published                   | Archive is a shelf, not a grave. `archivedAt` is set on the way in and cleared on the way out. `publishedAt` is never overwritten, and re-sending the current status is a no-op, so nothing is stamped without a history entry.                                                         |
+| 2026-11-12 | A status move has its own endpoint: `PATCH /content/:id/status`                | A move is checked against the state machine and stamps who published or archived, so it is not a field edit. There is exactly one way to change status.                                                                                                                                 |
+| 2026-11-12 | The database schema lives in `backend`; `shared` holds hand-written wire types | Prisma's types describe rows, where `createdAt` is a `Date`; the browser receives ISO strings. `shared` must also stay free of `@prisma/client` for the frontend bundle. `serialize.ts` converts, and `schema-contract.ts` fails the build if enum members or field names drift apart.  |
+| 2026-11-12 | Routes hold no logic                                                           | A route reads the request, calls a service and returns. Permissions, transitions and audit writes live in `services/`, which knows nothing about HTTP. One error middleware turns failures into status codes.                                                                           |
+| 2026-11-12 | Zod for validation and `http-errors` for failures                              | Replaces about 130 lines of hand-written parsing and error classes with two widely used packages. Zod schemas also infer their input types.                                                                                                                                             |
+| 2026-11-12 | Mock sign-in: a user picker, an `x-user-id` header, a public user list         | There are no passwords to check. The choice is kept in `sessionStorage` so a refresh does not sign you out, and the users are seeded into the database so author and actor ids are real foreign keys. Real auth would replace `AuthProvider` and one middleware.                        |
+| 2026-11-12 | React Router and TanStack Query on the frontend                                | Query owns loading, error and refetching, so publishing refreshes the dashboard and the item view without extra code. Cache keys include the user id, so switching user never shows the previous user's data.                                                                           |
+| 2026-11-12 | One plain CSS stylesheet, no CSS framework                                     | Three screens do not need a framework or a build plugin. Would not scale to a large app; it is not meant to.                                                                                                                                                                            |
+| 2026-11-13 | A contributor's own items are the ones they created; authors are credits       | Follows the brief: contributors view and manage only their own items. One database filter decides access for both the list and single-item reads. Replaced an earlier rule where being an author granted access.                                                                        |
+| 2026-11-13 | The backend image runs TypeScript through `tsx`, with no compile step          | One source of truth and nothing to build, which suits a demo. The image ships dev dependencies at about 970MB. In the Dockerfile, `NODE_ENV=production` must come after `pnpm install` and the Prisma schema must be copied before it.                                                  |
+| 2026-11-13 | No comments in the source; names carry the meaning                             | Conditions that need explaining get a named function or variable instead, such as `isRowDeletedByAnotherRequestBeforeOurWrite`. The reasoning behind each choice lives in this table.                                                                                                   |
 
 ## Troubleshooting
 
-| Error                                                                 | Fix                                                                                                                                              |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Invalid package manager specification ... expected a semver version` | The pnpm version in `package.json` must be exact, e.g. `12.18.0`, not `^12.18.0`.                                                                |
-| `ERR_PNPM_IGNORED_BUILDS`                                             | See step 4.                                                                                                                                      |
-| `pnpm: command not found`                                             | Open a new terminal after step 2, or check that pnpm's bin folder (`~/Library/pnpm` on macOS, `~/.local/share/pnpm` on Linux) is on your `PATH`. |
-| `typescript-eslint does not support TS 7.0`                           | The root `typescript` devDependency must stay on 6.x — that's the version ESLint parses with. Package builds are unaffected.                     |
-| Port `3000` already in use                                            | A Docker `backend` container and a local `pnpm dev` cannot both have it. Run `docker compose stop backend`, or stop the local one.               |
-| App loads but your code changes are missing                           | You are on Option A. The image is stale: `docker compose up -d --build frontend`, then hard-reload the browser.                                  |
-| Port `5432` already in use                                            | Another Postgres is running. Stop it, or change the port mapping in `docker-compose.yaml` to `"5433:5432"` and use `5433` in `DATABASE_URL`.     |
+| Problem                                     | Fix                                                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Login works, then loading content fails     | The database is empty. Run `pnpm docker:setup`.                                                                          |
+| Code changes are missing on port 8080       | The images are stale. Run `pnpm docker:rebuild`, then hard-reload the browser.                                           |
+| Port `3000` already in use                  | The Docker backend and `pnpm dev` both want it. Run `pnpm docker:down`, or stop the local server.                        |
+| Port `5432` already in use                  | Another Postgres is running. Stop it, or map `"5433:5432"` in `docker-compose.yaml` and set `DATABASE_URL` to port 5433. |
+| `ERR_PNPM_IGNORED_BUILDS`                   | Run `pnpm approve-builds`, approve the packages you trust, then `pnpm install` again.                                    |
+| `pnpm: command not found`                   | Open a new terminal, or add pnpm's bin folder to your `PATH`.                                                            |
+| `typescript-eslint does not support TS 7.0` | Keep the root `typescript` devDependency on 6.x; it is only used for linting.                                            |
