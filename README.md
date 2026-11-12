@@ -135,6 +135,52 @@ Use this for day-to-day development. Code changes reload instantly.
 - App: http://localhost:5173
 - API: http://localhost:5173/api/health (proxied to Express on port 3000)
 
+## Database
+
+There are no migration files. The schema lives in `packages/backend/src/schema.ts`
+and is applied by diffing it against the running database.
+
+From `packages/backend`, with Postgres up:
+
+| Task                             | Command          |
+| -------------------------------- | ---------------- |
+| Apply the schema to the database | `pnpm db:push`   |
+| Seed the hardcoded users         | `pnpm db:seed`   |
+| Browse the data in a UI          | `pnpm db:studio` |
+
+Run `db:push` then `db:seed` once after first starting Postgres, and `db:push`
+again whenever `schema.ts` changes.
+
+### Signing in
+
+Authentication is mocked: a request names its user with an `x-user-id` header,
+matched against the hardcoded list in `packages/shared/src/users.ts`. There are
+no passwords. `GET /api/users` returns the list so the frontend can offer a
+"sign in as" picker.
+
+| User         | Role        | Sees                              |
+| ------------ | ----------- | --------------------------------- |
+| Edith Ortega | editor      | Every content item                |
+| Carl Nguyen  | contributor | Only items they created or author |
+| Priya Raman  | contributor | Only items they created or author |
+
+### API
+
+All routes need an `x-user-id` header and return only what that user may see.
+
+| Method   | Path                      | Does                                     |
+| -------- | ------------------------- | ---------------------------------------- |
+| `GET`    | `/api/content`            | All content items visible to the caller  |
+| `POST`   | `/api/content`            | Create an item (starts at `idea`)        |
+| `PATCH`  | `/api/content/:id`        | Edit title, type, authors or deadline    |
+| `PATCH`  | `/api/content/:id/status` | Move the item to a new status            |
+| `DELETE` | `/api/content/:id`        | Delete the item; its audit history stays |
+| `GET`    | `/api/content/:id/audit`  | Change history for one item              |
+| `GET`    | `/api/users`              | The hardcoded user list                  |
+
+Status moves follow `idea -> draft -> review -> published -> archived`
+(`draft` and `review` can also step back). Anything else returns `409`.
+
 ## Code style
 
 ESLint and Prettier are configured once at the repo root and cover all three packages. ESLint catches bugs; Prettier owns formatting. They don't overlap — `eslint-config-prettier` turns off every ESLint rule that would argue about layout.
@@ -160,14 +206,24 @@ Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code,
 
 ## Architecture decisions
 
-| Date       | Decision                                                            | Why                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-12 | pnpm workspace with `frontend`, `backend` and `shared` packages     | Types shared between the React app and the API without publishing anything. Costs a workspace tool the whole team has to install.        |
-| 2026-11-12 | `shared` exports TypeScript source directly, with no build step     | No build to run or watch before the other packages see a change. Only works because both consumers compile TS themselves.                |
-| 2026-11-12 | Postgres in Docker, apps on the host for day-to-day work            | Instant reload on code changes while the database stays disposable. Full `docker compose up` stays available for a production-like run.  |
-| 2026-11-12 | One ESLint and Prettier config at the repo root, not per package    | One version of each tool and one place to add rules. Packages cannot diverge, which is the point.                                        |
-| 2026-11-12 | Root `typescript` pinned to 6.x for linting; backend builds on TS 7 | `typescript-eslint` 8.x refuses TS 7. Keeps linting working without holding the backend back.                                            |
-| 2026-11-12 | `npm` kept in the Dockerfile only to install pnpm                   | `node:26-slim` ships no corepack, curl or wget. The npm-free route costs an apt-get layer, which is not worth it for one bootstrap line. |
+| Date       | Decision                                                                  | Why                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-12 | pnpm workspace with `frontend`, `backend` and `shared` packages           | Types shared between the React app and the API without publishing anything. Costs a workspace tool the whole team has to install.                                                                                                                                                                                                   |
+| 2026-11-12 | `shared` exports TypeScript source directly, with no build step           | No build to run or watch before the other packages see a change. Only works because both consumers compile TS themselves.                                                                                                                                                                                                           |
+| 2026-11-12 | Postgres in Docker, apps on the host for day-to-day work                  | Instant reload on code changes while the database stays disposable. Full `docker compose up` stays available for a production-like run.                                                                                                                                                                                             |
+| 2026-11-12 | One ESLint and Prettier config at the repo root, not per package          | One version of each tool and one place to add rules. Packages cannot diverge, which is the point.                                                                                                                                                                                                                                   |
+| 2026-11-12 | Root `typescript` pinned to 6.x for linting; backend builds on TS 7       | `typescript-eslint` 8.x refuses TS 7. Keeps linting working without holding the backend back.                                                                                                                                                                                                                                       |
+| 2026-11-12 | `npm` kept in the Dockerfile only to install pnpm                         | `node:26-slim` ships no corepack, curl or wget. The npm-free route costs an apt-get layer, which is not worth it for one bootstrap line.                                                                                                                                                                                            |
+| 2026-11-12 | Drizzle as the ORM, with `drizzle-kit push` and no migration files        | Schema is plain TypeScript, so row types come free with no codegen step. Push diffs the schema against the live database directly — right for this repo, but it has no rollback and no history, so it would not survive a real deployment.                                                                                          |
+| 2026-11-12 | Audit columns on `content_items` **and** an append-only `audit_log` table | "Who published this" stays a single column read, while the log answers "what changed, when, by whom" — which an editorial team actually needs. Costs a second write on every mutation.                                                                                                                                              |
+| 2026-11-12 | Content type as a Postgres enum, not a lookup table                       | Two known values, and the `'article' \| 'video'` union reaches the frontend so a typo is a compile error. Adding a type means a schema edit and a push, not an INSERT.                                                                                                                                                              |
+| 2026-11-12 | `status` is an explicit state machine; `publishedAt` is only a by-product | Transitions are declared in `packages/shared/src/status.ts`, so `idea` cannot jump to `review`. Status is the single source of truth for whether an item is live — deriving it from `publishedAt` would let an item sit on `review` while carrying a publish timestamp.                                                             |
+| 2026-11-12 | The Drizzle schema lives in `packages/backend`, not in `shared`           | The browser talks to the API, never to Postgres, so `shared` keeps zero runtime dependencies. The cost is `serialize.ts`, which maps DB rows to the wire types — honest anyway, since JSON turns every `Date` into a string.                                                                                                        |
+| 2026-11-12 | Mock auth: `x-user-id` header against a hardcoded user list               | No passwords or sessions to build for an assignment. The list is seeded into a `users` table so author and audit-actor ids are real foreign keys, and swapping in real auth means replacing one middleware.                                                                                                                         |
+| 2026-11-12 | Routes hold no logic: thin HTTP adapters over a service layer             | A route reads the request, calls a service and picks a status code — nothing else. Permissions, status transitions and audit writes live in `services/`, which knows nothing about HTTP, so the same calls would serve a CLI or a job queue. Services throw domain errors (`errors.ts`) that one middleware maps to status codes.   |
+| 2026-11-12 | Readability is a standing requirement, not a cleanup pass                 | Functions are short and named for what they do, comments explain _why_ rather than restating the code, and anything subtle (a `404` that hides existence, a filter pushed into SQL) says so at the point it happens. Costs more lines than the terse version; worth it because this code is read far more often than it is written. |
+| 2026-11-12 | Zod for request validation and `http-errors` for failures                 | Replaced ~130 lines of hand-rolled parsing and custom error classes with two well-known packages. Zod schemas are declarative and infer their own input types; `http-errors` is what Express itself uses. Two more dependencies, far less code to read or get wrong.                                                                |
+| 2026-11-12 | A status move has its own endpoint: `PATCH /content/:id/status`           | A transition is checked against the state machine and stamps who published or archived — not a field edit. `status` was removed from the general `PATCH` body so there is exactly one way to move an item, and one place that rule lives.                                                                                           |
 
 ## Troubleshooting
 
