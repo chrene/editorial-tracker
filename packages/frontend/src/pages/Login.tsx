@@ -3,11 +3,6 @@ import type { User } from '@editorial-tracker/shared';
 import { useAuth } from '../lib/auth.js';
 import { useUsers } from '../lib/queries.js';
 
-/**
- * Simulated login. There are no passwords — the backend's user list is
- * hardcoded, so signing in means picking who you are. Each card shows the
- * role, because the role is the only thing that changes what you can do.
- */
 export function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();

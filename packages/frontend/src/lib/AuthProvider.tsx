@@ -16,9 +16,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STORAGE_KEY);
     setUser(null);
 
-    // Drop every cached response. The query keys are already scoped per user,
-    // so this is not what makes the next sign-in correct — it stops one user's
-    // content from sitting in memory after they have left.
     queryClient.clear();
   }
 

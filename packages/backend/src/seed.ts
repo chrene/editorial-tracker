@@ -1,10 +1,6 @@
 import { USERS } from '@editorial-tracker/shared';
 import { db } from './db.js';
 
-/**
- * Pushes the hardcoded user list into the `users` table so author ids and audit
- * actor ids resolve to real foreign keys. Safe to re-run.
- */
 async function seed(): Promise<void> {
   for (const user of USERS) {
     await db.user.upsert({ where: { id: user.id }, create: user, update: user });

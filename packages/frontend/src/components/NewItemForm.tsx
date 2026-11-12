@@ -4,10 +4,6 @@ import { useCurrentUser } from '../lib/auth.js';
 import { useCreateItem } from '../lib/queries.js';
 import { AuthorPicker } from './AuthorPicker.js';
 
-/**
- * Creates a content item. New items always start at `idea`, so this form has no
- * status field — the content view is where status moves happen.
- */
 export function NewItemForm() {
   const user = useCurrentUser();
   const create = useCreateItem();
@@ -64,7 +60,6 @@ export function NewItemForm() {
         </label>
       </div>
 
-      {/* You are the creator, so you are never in your own author list. */}
       <AuthorPicker selected={authorIds} onChange={setAuthorIds} excludeUserId={user.id} />
 
       {create.isError && <p className="error">{create.error.message}</p>}

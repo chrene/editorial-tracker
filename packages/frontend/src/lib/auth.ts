@@ -1,14 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { User } from '@editorial-tracker/shared';
 
-/**
- * Simulated sign-in. There is no password: picking a user on the login screen
- * stores them, and every API call is then made as that user.
- *
- * The choice is kept in `sessionStorage` so a refresh does not sign you out.
- * The provider component lives in `AuthProvider.tsx`; this file holds the
- * context and hooks so fast refresh keeps working.
- */
 export const STORAGE_KEY = 'editorial-tracker:user';
 
 export interface AuthValue {
@@ -36,7 +28,6 @@ export function useAuth(): AuthValue {
   return value;
 }
 
-/** The signed-in user, for screens already behind `<RequireAuth>`. */
 export function useCurrentUser(): User {
   const { user } = useAuth();
   if (!user) throw new Error('No signed-in user. Render this inside <RequireAuth>.');

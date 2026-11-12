@@ -14,19 +14,11 @@ import { StatusBadge } from '../components/StatusBadge.js';
 
 type Filter = ContentStatus | 'all';
 
-/**
- * The dashboard. The list is grouped by status, and the filter narrows it to a
- * single group.
- *
- * What you see is already scoped by the API: an editor's list holds every item,
- * a contributor's holds only their own. The frontend never filters by role.
- */
 export function Dashboard() {
   const user = useCurrentUser();
   const { data: items, isLoading, error } = useContentItems();
   const [filter, setFilter] = useState<Filter>('all');
 
-  // Names for the "created by" and author columns; ids tell a reader nothing.
   const { data: users = [] } = useUsers();
 
   return (

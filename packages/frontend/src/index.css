@@ -1,5 +1,3 @@
-/* One stylesheet for the whole app. Tokens first, then layout, then parts. */
-
 :root {
   --text: #3c3a42;
   --text-strong: #08060d;
@@ -71,8 +69,6 @@ a {
   margin: 0.5rem 0;
 }
 
-/* --- Layout --- */
-
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -127,8 +123,6 @@ a {
     grid-template-columns: 1fr;
   }
 }
-
-/* --- Forms --- */
 
 label {
   display: flex;
@@ -194,8 +188,6 @@ button.link {
   padding: 0;
 }
 
-/* --- Login --- */
-
 .login {
   width: min(460px, 100%);
 }
@@ -225,8 +217,6 @@ button.link {
 .user-button .small {
   grid-column: 1 / -1;
 }
-
-/* --- Badges --- */
 
 .badge {
   display: inline-block;
@@ -264,8 +254,6 @@ button.link {
   color: var(--muted);
 }
 
-/* --- Filters --- */
-
 .filters {
   display: flex;
   gap: 0.4rem;
@@ -290,8 +278,6 @@ button.link {
   font-size: 0.75rem;
   font-weight: 600;
 }
-
-/* --- Item list --- */
 
 .item-list {
   list-style: none;
@@ -331,8 +317,6 @@ button.link {
   color: var(--danger);
   font-weight: 600;
 }
-
-/* --- Content view --- */
 
 .content-view {
   display: grid;
@@ -386,8 +370,6 @@ button.link {
   margin-bottom: 1.25rem;
 }
 
-/* --- History --- */
-
 .history ul {
   list-style: none;
   padding: 0;
@@ -412,8 +394,6 @@ button.link {
 .changes {
   flex-basis: 100%;
 }
-
-/* --- Author picker --- */
 
 .authors {
   border: 1px solid var(--border);

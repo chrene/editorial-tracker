@@ -2,17 +2,10 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import type { AuditAction, Changes, ContentItem } from '@editorial-tracker/shared';
 import { db } from './db.js';
 
-/** Either the client or an open transaction, so callers can group writes. */
 type Db = PrismaClient | Prisma.TransactionClient;
 
-/**
- * Fields worth a before/after entry. `updatedAt` and `updatedBy` are left out:
- * they change on every single write, so logging them would bury the edits a
- * person actually made.
- */
 const TRACKED_FIELDS = ['title', 'type', 'status', 'authorIds', 'deadline'] as const;
 
-/** Compares two versions of an item and returns only the fields that moved. */
 export function diff(before: ContentItem, after: ContentItem): Changes {
   const changes: Changes = {};
 
@@ -20,8 +13,6 @@ export function diff(before: ContentItem, after: ContentItem): Changes {
     const from = before[field];
     const to = after[field];
 
-    // Compared as JSON so `authorIds` (an array) is checked by value, not by
-    // reference — two equal arrays must not look like a change.
     if (JSON.stringify(from) !== JSON.stringify(to)) {
       changes[field] = { from, to };
     }
@@ -30,7 +21,6 @@ export function diff(before: ContentItem, after: ContentItem): Changes {
   return changes;
 }
 
-/** Appends one entry to the log. The log is append-only; nothing updates it. */
 export async function record(
   contentItemId: string,
   actorId: string,
@@ -43,9 +33,7 @@ export async function record(
       contentItemId,
       actorId,
       action,
-      // The values came out of `diff`, which only keeps fields it could compare
-      // with JSON.stringify — so they are JSON by construction. Prisma's input
-      // type cannot see that, hence the cast.
+
       changes: (changes ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });

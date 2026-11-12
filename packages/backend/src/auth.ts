@@ -10,11 +10,6 @@ declare global {
   }
 }
 
-/**
- * Mock authentication. The request names its user with `x-user-id`; there is no
- * password, token or session. Fine for an assignment, and the only thing a real
- * implementation would have to replace is this middleware.
- */
 export function mockAuth(req: Request, res: Response, next: NextFunction): void {
   const id = req.header('x-user-id');
   if (!id) {

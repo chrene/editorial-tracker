@@ -5,10 +5,6 @@ import { Dashboard } from './pages/Dashboard.js';
 import { ContentView } from './pages/ContentView.js';
 import type { ReactNode } from 'react';
 
-/**
- * Two routes behind a sign-in, one in front of it. `RequireAuth` is the only
- * gate, so no screen has to check for a missing user.
- */
 export default function App() {
   return (
     <Routes>
@@ -43,7 +39,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-/** The signed-in frame: who you are, and a way out. */
 function Shell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
 

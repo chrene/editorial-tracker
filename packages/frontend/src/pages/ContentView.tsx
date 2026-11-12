@@ -18,13 +18,6 @@ import { AuthorPicker } from '../components/AuthorPicker.js';
 import { allowedNextStatuses, formatDate, isOverdue, userName } from '../lib/format.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 
-/**
- * One content item: its details, the actions it currently allows, and its
- * history.
- *
- * Which actions appear comes from the backend's state machine, so the buttons
- * can never offer a move the API would reject.
- */
 export function ContentView() {
   const { id = '' } = useParams();
   const { data: item, isLoading, error } = useContentItem(id);
@@ -107,13 +100,10 @@ function Details({ item, users }: { item: ContentItem; users: User[] }) {
   );
 }
 
-/** Publish, archive and every other status move the item currently allows. */
 function Actions({ item }: { item: ContentItem }) {
   const setStatus = useSetStatus(item.id);
   const next = allowedNextStatuses(item.status);
 
-  // No status is terminal today, but the table in `status.ts` is meant to be
-  // edited, so a status with nowhere to go still renders sensibly.
   if (next.length === 0) return null;
 
   return (
@@ -139,7 +129,6 @@ function Actions({ item }: { item: ContentItem }) {
   );
 }
 
-/** Button wording. Restoring an archived item is not the same act as publishing. */
 function label(from: ContentStatus, to: ContentStatus): string {
   if (from === 'archived') return to === 'published' ? 'Restore' : 'Send back to draft';
   if (to === 'published') return 'Publish';
@@ -192,7 +181,6 @@ function EditForm({ item }: { item: ContentItem }) {
         </label>
       </div>
 
-      {/* The creator always has access, so they are not an assignable author. */}
       <AuthorPicker selected={authorIds} onChange={setAuthorIds} excludeUserId={item.createdBy} />
 
       {update.isError && <p className="error">{update.error.message}</p>}

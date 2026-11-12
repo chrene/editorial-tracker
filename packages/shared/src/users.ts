@@ -1,11 +1,5 @@
 import type { User } from './types.js';
 
-/**
- * Mock authentication: the whole user base, hardcoded. There is no signup,
- * password or session — a request names its user with the `x-user-id` header
- * and the backend looks it up here. Seeded into the `users` table so audit
- * rows and author lists can carry real foreign keys.
- */
 export const USERS: readonly User[] = [
   {
     id: '11111111-1111-4111-8111-111111111111',

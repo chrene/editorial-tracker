@@ -1,14 +1,6 @@
 import type { User } from '@editorial-tracker/shared';
 import { useUsers } from '../lib/queries.js';
 
-/**
- * Picks the authors assigned to an item.
- *
- * Assigning someone is not cosmetic: an author can see and manage the item just
- * as its creator can, so this is how work gets handed to another contributor.
- * The creator is left out of the list — they already have access and are shown
- * separately as "Created by".
- */
 export function AuthorPicker({
   selected,
   onChange,

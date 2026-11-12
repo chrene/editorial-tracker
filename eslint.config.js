@@ -9,13 +9,10 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 export default defineConfig([
   globalIgnores(['**/dist', '**/node_modules', 'pnpm-lock.yaml']),
 
-  // All TypeScript across the workspace
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     rules: {
-      // A leading underscore marks an argument that must exist but is unused --
-      // Express only recognizes error middleware by its four-argument shape.
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -27,7 +24,6 @@ export default defineConfig([
     },
   },
 
-  // Frontend: React, browser globals
   {
     files: ['packages/frontend/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
@@ -36,7 +32,6 @@ export default defineConfig([
     },
   },
 
-  // Backend + shared: Node globals
   {
     files: ['packages/{backend,shared}/**/*.ts'],
     languageOptions: {
@@ -44,7 +39,6 @@ export default defineConfig([
     },
   },
 
-  // Config files run in Node
   {
     files: ['*.js', '**/*.config.{js,ts}'],
     languageOptions: {

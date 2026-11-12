@@ -6,8 +6,6 @@ import { AuthProvider } from './lib/AuthProvider.js';
 import App from './App.js';
 import './index.css';
 
-// Content changes often enough that refetching on focus is helpful, but a short
-// stale time stops every navigation from hitting the API.
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 10_000, retry: 1 } },
 });

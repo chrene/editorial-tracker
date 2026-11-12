@@ -3,21 +3,6 @@ import type { ContentStatus } from '@editorial-tracker/shared';
 import { useCurrentUser } from './auth.js';
 import { api, type NewContentItem } from './api.js';
 
-/**
- * Every content query and mutation. Mutations invalidate the queries they
- * affect, so publishing an item refreshes the dashboard and the item view on
- * their own — no screen has to remember to refetch.
- *
- * Every key starts with the user id. Two users never see the same cache entry,
- * because the API returns a different list to each of them: an editor sees all
- * items, a contributor only their own. Without the id, signing in as someone
- * else would show the previous user's list until something forced a refetch.
- */
-/**
- * The demo user roster. Public, unchanging for the life of the session, and
- * needed by all three screens — so it is fetched once and shared rather than
- * re-fetched in each one.
- */
 export function useUsers() {
   return useQuery({
     queryKey: ['users'],
@@ -86,7 +71,6 @@ export function useSetStatus(id: string) {
   });
 }
 
-/** After a write: the item, its history, and the dashboard list are all stale. */
 function invalidateItem(client: QueryClient, userId: string, id: string) {
   client.invalidateQueries({ queryKey: keys.item(userId, id) });
   client.invalidateQueries({ queryKey: keys.history(userId, id) });
