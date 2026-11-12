@@ -181,6 +181,19 @@ All routes need an `x-user-id` header and return only what that user may see.
 Status moves follow `idea -> draft -> review -> published -> archived`
 (`draft` and `review` can also step back). Anything else returns `409`.
 
+### Using the app
+
+Open http://localhost:5173 and pick a user. There are no passwords.
+
+| Screen       | Path           | What it does                                                      |
+| ------------ | -------------- | ----------------------------------------------------------------- |
+| Login        | `/login`       | Pick a demo user; the role decides what you can reach             |
+| Dashboard    | `/`            | Items grouped by status and filterable, with creator and deadline |
+| Content item | `/content/:id` | Publish, edit, archive, and the item's full history               |
+
+The dashboard's create form is on the right. Overdue deadlines are marked in red,
+and only statuses the state machine allows appear as buttons on an item.
+
 ## Code style
 
 ESLint and Prettier are configured once at the repo root and cover all three packages. ESLint catches bugs; Prettier owns formatting. They don't overlap — `eslint-config-prettier` turns off every ESLint rule that would argue about layout.
@@ -224,6 +237,10 @@ Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code,
 | 2026-11-12 | Readability is a standing requirement, not a cleanup pass                 | Functions are short and named for what they do, comments explain _why_ rather than restating the code, and anything subtle (a `404` that hides existence, a filter pushed into SQL) says so at the point it happens. Costs more lines than the terse version; worth it because this code is read far more often than it is written. |
 | 2026-11-12 | Zod for request validation and `http-errors` for failures                 | Replaced ~130 lines of hand-rolled parsing and custom error classes with two well-known packages. Zod schemas are declarative and infer their own input types; `http-errors` is what Express itself uses. Two more dependencies, far less code to read or get wrong.                                                                |
 | 2026-11-12 | A status move has its own endpoint: `PATCH /content/:id/status`           | A transition is checked against the state machine and stamps who published or archived — not a field edit. `status` was removed from the general `PATCH` body so there is exactly one way to move an item, and one place that rule lives.                                                                                           |
+| 2026-11-12 | React Router and TanStack Query on the frontend                           | Query owns loading, error and refetch state, so publishing an item refreshes the dashboard and the item view on its own — no screen has to remember to refetch. Router keeps `/content/:id` a real URL that survives a refresh. Two dependencies instead of hand-rolled `useEffect` fetching in every screen.                       |
+| 2026-11-12 | One plain CSS stylesheet, no CSS framework                                | Five screens do not need a framework or a build plugin. Tokens live in `:root` and the markup stays readable. Would not scale to a large app; it is not meant to.                                                                                                                                                                   |
+| 2026-11-12 | Login is a user picker; the choice sits in `sessionStorage`               | Matches the mocked backend auth — no passwords exist, so "signing in" is choosing who you are. `sessionStorage` stops a refresh from logging you out. Swapping in real auth means replacing `AuthProvider` and the `x-user-id` header in `lib/api.ts`.                                                                              |
+| 2026-11-12 | `GET /api/users` is public; everything else needs a user                  | The login screen must list the users before anyone is signed in. The list is the hardcoded demo roster and holds no secrets. `/api/content` stays behind the auth middleware.                                                                                                                                                       |
 
 ## Troubleshooting
 
