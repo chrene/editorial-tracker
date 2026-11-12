@@ -1,6 +1,5 @@
 import { USERS } from '@editorial-tracker/shared';
-import { users } from './schema.js';
-import { db, pool } from './db.js';
+import { db } from './db.js';
 
 /**
  * Pushes the hardcoded user list into the `users` table so author ids and audit
@@ -8,16 +7,11 @@ import { db, pool } from './db.js';
  */
 async function seed(): Promise<void> {
   for (const user of USERS) {
-    await db
-      .insert(users)
-      .values(user)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: { name: user.name, email: user.email, role: user.role },
-      });
+    await db.user.upsert({ where: { id: user.id }, create: user, update: user });
   }
+
   console.log(`Seeded ${USERS.length} users.`);
-  await pool.end();
+  await db.$disconnect();
 }
 
 seed().catch((err) => {

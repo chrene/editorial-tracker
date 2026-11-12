@@ -1,5 +1,4 @@
 import type { AuditAction, ContentItem } from '@editorial-tracker/shared';
-import { auditLog } from './schema.js';
 import { db } from './db.js';
 
 /** What changed, as `{ field: { from, to } }`. */
@@ -37,5 +36,7 @@ export async function record(
   action: AuditAction,
   changes: Changes | null = null,
 ): Promise<void> {
-  await db.insert(auditLog).values({ contentItemId, actorId, action, changes });
+  await db.auditLog.create({
+    data: { contentItemId, actorId, action, changes: changes ?? undefined },
+  });
 }

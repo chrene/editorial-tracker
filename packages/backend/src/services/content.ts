@@ -1,5 +1,5 @@
-import { desc, eq, or, sql } from 'drizzle-orm';
 import createError from 'http-errors';
+import type { Prisma } from '@prisma/client';
 import {
   canAccess,
   transitionError,
@@ -9,7 +9,6 @@ import {
   type ContentStatus,
   type User,
 } from '@editorial-tracker/shared';
-import { auditLog, contentItems } from '../schema.js';
 import { db } from '../db.js';
 import { toContentItem } from '../serialize.js';
 import { diff, record } from '../audit.js';
@@ -23,30 +22,28 @@ import type { CreateContentInput, UpdateContentInput } from '../validation.js';
  * same functions would serve a CLI or a background job.
  */
 
-type ContentPatch = Partial<typeof contentItems.$inferInsert>;
+type ContentPatch = Prisma.ContentItemUncheckedUpdateInput;
 
 /**
  * Restricts a query to the rows a user may see. Editors get everything, which
- * is why this returns `undefined` — Drizzle reads that as "no WHERE clause".
+ * is why this returns `{}` — Prisma reads that as "no filter".
  *
  * Contributors are filtered in SQL rather than after the fetch, so a future
- * `LIMIT` cannot quietly count rows the user is not allowed to see.
+ * `take` cannot quietly count rows the user is not allowed to see.
  */
-function visibleTo(user: User) {
-  if (user.role === 'editor') return undefined;
+function visibleTo(user: User): Prisma.ContentItemWhereInput {
+  if (user.role === 'editor') return {};
 
-  return or(
-    eq(contentItems.createdBy, user.id),
-    sql`${contentItems.authorIds} @> ARRAY[${user.id}]::uuid[]`,
-  );
+  return {
+    OR: [{ createdBy: user.id }, { authorIds: { has: user.id } }],
+  };
 }
 
 export async function list(user: User): Promise<ContentItem[]> {
-  const rows = await db
-    .select()
-    .from(contentItems)
-    .where(visibleTo(user))
-    .orderBy(desc(contentItems.updatedAt));
+  const rows = await db.contentItem.findMany({
+    where: visibleTo(user),
+    orderBy: { updatedAt: 'desc' },
+  });
 
   return rows.map(toContentItem);
 }
@@ -56,7 +53,7 @@ export async function list(user: User): Promise<ContentItem[]> {
  * of every write, so permission is checked in exactly one place.
  */
 export async function get(user: User, id: string): Promise<ContentItem> {
-  const [row] = await db.select().from(contentItems).where(eq(contentItems.id, id));
+  const row = await db.contentItem.findUnique({ where: { id } });
   if (!row) throw createError.NotFound();
 
   const item = toContentItem(row);
@@ -70,22 +67,24 @@ export async function get(user: User, id: string): Promise<ContentItem> {
 export async function history(user: User, id: string): Promise<AuditEntry[]> {
   await get(user, id);
 
-  const entries = await db
-    .select()
-    .from(auditLog)
-    .where(eq(auditLog.contentItemId, id))
-    .orderBy(desc(auditLog.at));
+  const entries = await db.auditLog.findMany({
+    where: { contentItemId: id },
+    orderBy: { at: 'desc' },
+  });
 
-  return entries.map((entry) => ({ ...entry, at: entry.at.toISOString() }));
+  return entries.map((entry) => ({
+    ...entry,
+    changes: entry.changes as AuditEntry['changes'],
+    at: entry.at.toISOString(),
+  }));
 }
 
 export async function create(user: User, input: CreateContentInput): Promise<ContentItem> {
-  // New items always start at `idea`. Status only ever moves through `update`,
-  // the single place the state machine is enforced.
-  const [row] = await db
-    .insert(contentItems)
-    .values({ ...input, createdBy: user.id, updatedBy: user.id })
-    .returning();
+  // New items always start at `idea`. Status only ever moves through
+  // `updateStatus`, the single place the state machine is enforced.
+  const row = await db.contentItem.create({
+    data: { ...input, createdBy: user.id, updatedBy: user.id },
+  });
 
   await record(row.id, user.id, 'created');
 
@@ -118,20 +117,19 @@ export async function updateStatus(
 export async function remove(user: User, id: string): Promise<void> {
   await get(user, id);
 
-  await db.delete(contentItems).where(eq(contentItems.id, id));
+  await db.contentItem.delete({ where: { id } });
 
-  // The log keeps its rows: `audit_log.content_item_id` has no foreign key
+  // The log keeps its rows: `audit_log.content_item_id` is not a relation
   // precisely so history survives the item it describes.
   await record(id, user.id, 'deleted');
 }
 
 /** Writes a patch and records what actually changed. The only write path. */
 async function save(user: User, before: ContentItem, patch: ContentPatch): Promise<ContentItem> {
-  const [row] = await db
-    .update(contentItems)
-    .set({ ...patch, updatedBy: user.id, updatedAt: new Date() })
-    .where(eq(contentItems.id, before.id))
-    .returning();
+  const row = await db.contentItem.update({
+    where: { id: before.id },
+    data: { ...patch, updatedBy: user.id, updatedAt: new Date() },
+  });
 
   const after = toContentItem(row);
 

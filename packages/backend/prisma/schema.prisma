@@ -1,0 +1,115 @@
+// The database schema. There are no migration files: `pnpm db:push` diffs this
+// against the live database and applies the difference.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  editor
+  contributor
+
+  @@map("role")
+}
+
+enum ContentType {
+  article
+  video
+
+  @@map("content_type")
+}
+
+enum ContentStatus {
+  idea
+  draft
+  review
+  published
+  archived
+
+  @@map("content_status")
+}
+
+enum AuditAction {
+  created
+  updated
+  status_changed
+  published
+  archived
+  deleted
+
+  @@map("audit_action")
+}
+
+/// Seeded from the hardcoded USERS list so author and actor ids are real keys.
+model User {
+  id    String @id @db.Uuid
+  name  String
+  email String @unique
+  role  Role
+
+  created   ContentItem[] @relation("createdBy")
+  updated   ContentItem[] @relation("updatedBy")
+  published ContentItem[] @relation("publishedBy")
+  archived  ContentItem[] @relation("archivedBy")
+  auditLog  AuditLog[]
+
+  @@map("users")
+}
+
+model ContentItem {
+  id     String        @id @default(uuid()) @db.Uuid
+  title  String
+  type   ContentType
+  status ContentStatus @default(idea)
+
+  /// Authors beyond the creator. `createdBy` is not repeated in here.
+  authorIds String[] @default([]) @map("author_ids") @db.Uuid
+
+  deadline DateTime? @db.Timestamptz(3)
+
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedBy String   @map("updated_by") @db.Uuid
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+
+  /// Written when the item enters the status, cleared when it leaves, so the
+  /// stamps can never contradict `status`.
+  publishedBy String?   @map("published_by") @db.Uuid
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+  archivedBy  String?   @map("archived_by") @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(3)
+
+  creator   User  @relation("createdBy", fields: [createdBy], references: [id])
+  updater   User  @relation("updatedBy", fields: [updatedBy], references: [id])
+  publisher User? @relation("publishedBy", fields: [publishedBy], references: [id])
+  archiver  User? @relation("archivedBy", fields: [archivedBy], references: [id])
+
+  @@index([status])
+  @@index([createdBy])
+  @@map("content_items")
+}
+
+/// Append-only history. `content_items` answers "what is true now"; this
+/// answers "what happened, and who did it".
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Deliberately not a relation: the log outlives the item it describes.
+  contentItemId String @map("content_item_id") @db.Uuid
+
+  actorId String      @map("actor_id") @db.Uuid
+  action  AuditAction
+
+  /// Changed fields only: `{ field: { from, to } }`. Null for `created`.
+  changes Json?
+  at      DateTime @default(now()) @db.Timestamptz(3)
+
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@index([contentItemId, at])
+  @@map("audit_log")
+}

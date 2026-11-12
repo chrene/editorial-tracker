@@ -1,15 +1,14 @@
 import type { ContentItem } from '@editorial-tracker/shared';
-import type { ContentItemRow } from './schema.js';
+import type { ContentItem as ContentItemRow } from '@prisma/client';
 
 /**
  * Database rows to wire format.
  *
- * Drizzle hands back `Date` objects, but the API contract in
+ * Prisma hands back `Date` objects, but the API contract in
  * `@editorial-tracker/shared` promises ISO strings — which is what the frontend
  * actually receives once the response is serialized. Converting here, in one
  * place, keeps that promise true.
  */
-
 function isoOrNull(value: Date | null): string | null {
   return value === null ? null : value.toISOString();
 }
