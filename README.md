@@ -30,8 +30,22 @@ node -v
 
 ### 2. Install pnpm
 
+macOS, with Homebrew:
+
 ```bash
-npm install -g pnpm
+brew install pnpm
+```
+
+macOS or Linux, with the official installer:
+
+```bash
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+```
+
+Windows, in PowerShell:
+
+```powershell
+iwr https://get.pnpm.io/install.ps1 -useb | iex
 ```
 
 Check it works:
@@ -114,11 +128,35 @@ Use this for day-to-day development. Code changes reload instantly.
 - App: http://localhost:5173
 - API: http://localhost:5173/api/health (proxied to Express on port 3000)
 
+## Code style
+
+ESLint and Prettier are configured once at the repo root and cover all three packages. ESLint catches bugs; Prettier owns formatting. They don't overlap — `eslint-config-prettier` turns off every ESLint rule that would argue about layout.
+
+Run from the repo root:
+
+| Task                           | Command             |
+| ------------------------------ | ------------------- |
+| Check for lint errors          | `pnpm lint`         |
+| Fix what ESLint can fix        | `pnpm lint:fix`     |
+| Format every file              | `pnpm format`       |
+| Check formatting without edits | `pnpm format:check` |
+
+Config files:
+
+- `eslint.config.js` — flat config. TypeScript rules everywhere, React hooks and fast-refresh rules for `packages/frontend` only, Node globals for `packages/backend` and `packages/shared`.
+- `.prettierrc` — single quotes, semicolons, trailing commas, 100-character lines.
+- `.prettierignore` — skips `dist`, `node_modules` and the lockfile.
+
+Both tools run from the root, so individual packages have no lint config or lint dependencies of their own. Add new rules in `eslint.config.js`.
+
+Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code, install the Prettier extension and set it as the default formatter.
+
 ## Troubleshooting
 
-| Error                                                                 | Fix                                                                                                                                          |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Invalid package manager specification ... expected a semver version` | The pnpm version in `package.json` must be exact, e.g. `12.18.0`, not `^12.18.0`.                                                            |
-| `ERR_PNPM_IGNORED_BUILDS`                                             | See step 4.                                                                                                                                  |
-| `pnpm: command not found`                                             | Open a new terminal after step 2, or check that npm's global bin folder is on your `PATH`.                                                   |
-| Port `5432` already in use                                            | Another Postgres is running. Stop it, or change the port mapping in `docker-compose.yaml` to `"5433:5432"` and use `5433` in `DATABASE_URL`. |
+| Error                                                                 | Fix                                                                                                                                              |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Invalid package manager specification ... expected a semver version` | The pnpm version in `package.json` must be exact, e.g. `12.18.0`, not `^12.18.0`.                                                                |
+| `ERR_PNPM_IGNORED_BUILDS`                                             | See step 4.                                                                                                                                      |
+| `pnpm: command not found`                                             | Open a new terminal after step 2, or check that pnpm's bin folder (`~/Library/pnpm` on macOS, `~/.local/share/pnpm` on Linux) is on your `PATH`. |
+| `typescript-eslint does not support TS 7.0`                           | The root `typescript` devDependency must stay on 6.x — that's the version ESLint parses with. Package builds are unaffected.                     |
+| Port `5432` already in use                                            | Another Postgres is running. Stop it, or change the port mapping in `docker-compose.yaml` to `"5433:5432"` and use `5433` in `DATABASE_URL`.     |

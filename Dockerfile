@@ -1,4 +1,6 @@
 FROM node:26-slim AS base
+# node:26-slim ships npm only (no corepack), so npm bootstraps pnpm here.
+# This is the only npm call; pnpm runs every command after it.
 RUN npm install -g pnpm@12.18.0
 WORKDIR /app
 

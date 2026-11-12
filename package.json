@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --parallel -r dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devEngines": {
     "packageManager": {
@@ -12,5 +16,16 @@
       "version": "12.18.0",
       "onFail": "download"
     }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2"
   }
 }
