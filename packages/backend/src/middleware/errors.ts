@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import createError, { isHttpError } from 'http-errors';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client.js';
 
 const PRISMA_RECORD_NOT_FOUND = 'P2025';
 

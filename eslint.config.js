@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['**/dist', '**/node_modules', 'pnpm-lock.yaml']),
+  globalIgnores(['**/dist', '**/node_modules', 'pnpm-lock.yaml', 'packages/backend/src/generated']),
 
   {
     files: ['**/*.{ts,tsx}'],

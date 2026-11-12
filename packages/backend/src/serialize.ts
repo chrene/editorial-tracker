@@ -1,5 +1,5 @@
 import type { ContentItem } from '@editorial-tracker/shared';
-import type { ContentItem as ContentItemRow } from '@prisma/client';
+import type { ContentItem as ContentItemRow } from './generated/prisma/client.js';
 
 function isoOrNull(value: Date | null): string | null {
   return value === null ? null : value.toISOString();

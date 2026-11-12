@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from './generated/prisma/client.js';
 import type { AuditAction, Changes, ContentItem } from '@editorial-tracker/shared';
 
 interface AuditEntryInput {

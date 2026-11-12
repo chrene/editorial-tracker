@@ -211,6 +211,9 @@ importers:
       http-errors:
         specifier: ^2.0.1
         version: 2.0.1
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -227,9 +230,6 @@ importers:
       prisma:
         specifier: ^7.10.1
         version: 7.10.1(@types/node@24.19.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

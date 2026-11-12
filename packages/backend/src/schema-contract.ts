@@ -1,4 +1,4 @@
-import type { $Enums, Prisma } from '@prisma/client';
+import type { $Enums, Prisma } from './generated/prisma/client.js';
 import type {
   AuditAction,
   AuditEntry,

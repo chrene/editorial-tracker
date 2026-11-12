@@ -30,6 +30,17 @@ services:
       db:
         condition: service_healthy
 
+  setup:
+    build:
+      context: .
+      target: setup
+    profiles: ['setup']
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-editorial}:${POSTGRES_PASSWORD:-editorial}@db:5432/${POSTGRES_DB:-editorial_tracker}
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build:
       context: .

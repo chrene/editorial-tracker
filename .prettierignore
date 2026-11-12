@@ -2,3 +2,4 @@ node_modules
 dist
 pnpm-lock.yaml
 packages/frontend/public
+packages/backend/src/generated
