@@ -1,6 +1,9 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import type { AuditAction, ContentItem } from '@editorial-tracker/shared';
 import { db } from './db.js';
+
+/** Either the client or an open transaction, so callers can group writes. */
+type Db = PrismaClient | Prisma.TransactionClient;
 
 /** What changed, as `{ field: { from, to } }`. */
 export type Changes = Record<string, { from: unknown; to: unknown }>;
@@ -36,8 +39,9 @@ export async function record(
   actorId: string,
   action: AuditAction,
   changes: Changes | null = null,
+  client: Db = db,
 ): Promise<void> {
-  await db.auditLog.create({
+  await client.auditLog.create({
     data: {
       contentItemId,
       actorId,

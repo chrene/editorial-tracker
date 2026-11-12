@@ -412,3 +412,36 @@ button.link {
 .changes {
   flex-basis: 100%;
 }
+
+/* --- Author picker --- */
+
+.authors {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.authors legend {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0 0.3rem;
+}
+
+.authors p {
+  margin: 0 0 0.5rem;
+}
+
+.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  color: var(--text-strong);
+  font-size: 0.9rem;
+}
+
+.checkbox input {
+  width: auto;
+  margin: 0;
+}

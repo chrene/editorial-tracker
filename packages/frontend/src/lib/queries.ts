@@ -13,6 +13,19 @@ import { api, type NewContentItem } from './api.js';
  * items, a contributor only their own. Without the id, signing in as someone
  * else would show the previous user's list until something forced a refetch.
  */
+/**
+ * The demo user roster. Public, unchanging for the life of the session, and
+ * needed by all three screens — so it is fetched once and shared rather than
+ * re-fetched in each one.
+ */
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: api.users,
+    staleTime: Infinity,
+  });
+}
+
 const keys = {
   all: (userId: string) => ['content', userId] as const,
   item: (userId: string, id: string) => ['content', userId, id] as const,

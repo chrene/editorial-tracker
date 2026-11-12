@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CONTENT_STATUSES,
@@ -6,9 +6,8 @@ import {
   type ContentStatus,
   type User,
 } from '@editorial-tracker/shared';
-import { api } from '../lib/api.js';
 import { useCurrentUser } from '../lib/auth.js';
-import { useContentItems } from '../lib/queries.js';
+import { useContentItems, useUsers } from '../lib/queries.js';
 import { formatDate, isOverdue, userName } from '../lib/format.js';
 import { NewItemForm } from '../components/NewItemForm.js';
 import { StatusBadge } from '../components/StatusBadge.js';
@@ -26,15 +25,9 @@ export function Dashboard() {
   const user = useCurrentUser();
   const { data: items, isLoading, error } = useContentItems();
   const [filter, setFilter] = useState<Filter>('all');
-  const [users, setUsers] = useState<User[]>([]);
 
-  // Names for the "created by" column; ids alone tell a reader nothing.
-  useEffect(() => {
-    api
-      .users()
-      .then(setUsers)
-      .catch(() => setUsers([]));
-  }, []);
+  // Names for the "created by" and author columns; ids tell a reader nothing.
+  const { data: users = [] } = useUsers();
 
   return (
     <div className="dashboard">

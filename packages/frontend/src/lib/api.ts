@@ -35,6 +35,7 @@ async function request<T>(userId: string, path: string, init: RequestInit = {}):
 export interface NewContentItem {
   title: string;
   type: ContentType;
+  authorIds: string[];
   deadline: string | null;
 }
 

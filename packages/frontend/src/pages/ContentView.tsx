@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   CONTENT_TYPES,
@@ -7,8 +7,14 @@ import {
   type ContentType,
   type User,
 } from '@editorial-tracker/shared';
-import { api } from '../lib/api.js';
-import { useContentItem, useHistory, useSetStatus, useUpdateItem } from '../lib/queries.js';
+import {
+  useContentItem,
+  useHistory,
+  useSetStatus,
+  useUpdateItem,
+  useUsers,
+} from '../lib/queries.js';
+import { AuthorPicker } from '../components/AuthorPicker.js';
 import { allowedNextStatuses, formatDate, isOverdue, userName } from '../lib/format.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 
@@ -22,14 +28,7 @@ import { StatusBadge } from '../components/StatusBadge.js';
 export function ContentView() {
   const { id = '' } = useParams();
   const { data: item, isLoading, error } = useContentItem(id);
-  const [users, setUsers] = useState<User[]>([]);
-
-  useEffect(() => {
-    api
-      .users()
-      .then(setUsers)
-      .catch(() => setUsers([]));
-  }, []);
+  const { data: users = [] } = useUsers();
 
   if (isLoading) return <p className="muted">Loading…</p>;
   if (error) return <p className="error">{error.message}</p>;
@@ -67,6 +66,14 @@ function Details({ item, users }: { item: ContentItem; users: User[] }) {
       <div>
         <dt>Deadline</dt>
         <dd className={isOverdue(item) ? 'overdue' : undefined}>{formatDate(item.deadline)}</dd>
+      </div>
+      <div>
+        <dt>Authors</dt>
+        <dd>
+          {item.authorIds.length === 0
+            ? 'Nobody assigned yet'
+            : item.authorIds.map((authorId) => userName(users, authorId)).join(', ')}
+        </dd>
       </div>
       <div>
         <dt>Created by</dt>
@@ -145,6 +152,7 @@ function EditForm({ item }: { item: ContentItem }) {
 
   const [title, setTitle] = useState(item.title);
   const [type, setType] = useState<ContentType>(item.type);
+  const [authorIds, setAuthorIds] = useState<string[]>(item.authorIds);
   const [deadline, setDeadline] = useState(item.deadline?.slice(0, 10) ?? '');
 
   function submit(event: FormEvent) {
@@ -152,6 +160,7 @@ function EditForm({ item }: { item: ContentItem }) {
     update.mutate({
       title,
       type,
+      authorIds,
       deadline: deadline ? new Date(deadline).toISOString() : null,
     });
   }
@@ -182,6 +191,9 @@ function EditForm({ item }: { item: ContentItem }) {
           <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </label>
       </div>
+
+      {/* The creator always has access, so they are not an assignable author. */}
+      <AuthorPicker selected={authorIds} onChange={setAuthorIds} excludeUserId={item.createdBy} />
 
       {update.isError && <p className="error">{update.error.message}</p>}
       {update.isSuccess && <p className="success">Saved.</p>}
