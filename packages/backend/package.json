@@ -7,9 +7,12 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@editorial-tracker/shared": "workspace:*"
+    "@editorial-tracker/shared": "workspace:*",
+    "express": "^5.3.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
