@@ -158,6 +158,17 @@ Both tools run from the root, so individual packages have no lint config or lint
 
 Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code, install the Prettier extension and set it as the default formatter.
 
+## Architecture decisions
+
+| Date       | Decision                                                            | Why                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-12 | pnpm workspace with `frontend`, `backend` and `shared` packages     | Types shared between the React app and the API without publishing anything. Costs a workspace tool the whole team has to install.        |
+| 2026-11-12 | `shared` exports TypeScript source directly, with no build step     | No build to run or watch before the other packages see a change. Only works because both consumers compile TS themselves.                |
+| 2026-11-12 | Postgres in Docker, apps on the host for day-to-day work            | Instant reload on code changes while the database stays disposable. Full `docker compose up` stays available for a production-like run.  |
+| 2026-11-12 | One ESLint and Prettier config at the repo root, not per package    | One version of each tool and one place to add rules. Packages cannot diverge, which is the point.                                        |
+| 2026-11-12 | Root `typescript` pinned to 6.x for linting; backend builds on TS 7 | `typescript-eslint` 8.x refuses TS 7. Keeps linting working without holding the backend back.                                            |
+| 2026-11-12 | `npm` kept in the Dockerfile only to install pnpm                   | `node:26-slim` ships no corepack, curl or wget. The npm-free route costs an apt-get layer, which is not worth it for one bootstrap line. |
+
 ## Troubleshooting
 
 | Error                                                                 | Fix                                                                                                                                              |
