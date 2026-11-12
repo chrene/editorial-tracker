@@ -113,3 +113,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+# Personal Claude Code setup - not part of the project
+.claude/skills/
+.claude/settings.local.json
