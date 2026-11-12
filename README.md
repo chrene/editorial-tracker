@@ -89,7 +89,21 @@ If `pnpm install` or `pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`:
 
 ## Running locally
 
-## Option a: Docker
+The two options below serve the app on **different ports**. Which one you are
+running decides which URL to open.
+
+### Option A: everything in Docker
+
+The app is served by nginx on **http://localhost:8080**, not 5173.
+
+| What     | URL                                          |
+| -------- | -------------------------------------------- |
+| App      | http://localhost:8080                        |
+| API      | http://localhost:8080/api/health (via nginx) |
+| Postgres | `localhost:5432`                             |
+
+Code changes do **not** appear until you rebuild the image:
+`docker compose up -d --build frontend`. For a fast edit loop, use Option B.
 
 Run from the repo root.
 
@@ -132,8 +146,11 @@ Use this for day-to-day development. Code changes reload instantly.
    pnpm dev
    ```
 
-- App: http://localhost:5173
+- App: http://localhost:5173 (Vite, hot reloads on save)
 - API: http://localhost:5173/api/health (proxied to Express on port 3000)
+
+Nothing runs on 8080 in this mode. Stop the Docker `backend` container first, or
+it will hold port 3000: `docker compose stop backend frontend`.
 
 ## Database
 
@@ -178,12 +195,15 @@ All routes need an `x-user-id` header and return only what that user may see.
 | `GET`    | `/api/content/:id/audit`  | Change history for one item              |
 | `GET`    | `/api/users`              | The hardcoded user list                  |
 
-Status moves follow `idea -> draft -> review -> published -> archived`
-(`draft` and `review` can also step back). Anything else returns `409`.
+Status moves follow `idea -> draft -> review -> published -> archived`.
+`draft` and `review` can step back, and an archived item can be restored to
+`published` or sent back to `draft`. Anything else returns `409`.
 
 ### Using the app
 
-Open http://localhost:5173 and pick a user. There are no passwords.
+Open the app and pick a user — there are no passwords. The URL depends on how
+you started it: **http://localhost:8080** for Option A (Docker), or
+**http://localhost:5173** for Option B (Vite).
 
 | Screen       | Path           | What it does                                                      |
 | ------------ | -------------- | ----------------------------------------------------------------- |
@@ -237,6 +257,7 @@ Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code,
 | 2026-11-12 | Readability is a standing requirement, not a cleanup pass                 | Functions are short and named for what they do, comments explain _why_ rather than restating the code, and anything subtle (a `404` that hides existence, a filter pushed into SQL) says so at the point it happens. Costs more lines than the terse version; worth it because this code is read far more often than it is written. |
 | 2026-11-12 | Zod for request validation and `http-errors` for failures                 | Replaced ~130 lines of hand-rolled parsing and custom error classes with two well-known packages. Zod schemas are declarative and infer their own input types; `http-errors` is what Express itself uses. Two more dependencies, far less code to read or get wrong.                                                                |
 | 2026-11-12 | A status move has its own endpoint: `PATCH /content/:id/status`           | A transition is checked against the state machine and stamps who published or archived — not a field edit. `status` was removed from the general `PATCH` body so there is exactly one way to move an item, and one place that rule lives.                                                                                           |
+| 2026-11-12 | Archiving is reversible; status stamps are cleared on exit                | An archived item can be restored to `published` or sent back to `draft` — archiving is a shelf, not a grave. A timestamp is written when an item enters a status and cleared when it leaves, so a restored item cannot still claim it was archived. `publishedAt` survives a restore, because it really was published then.         |
 | 2026-11-12 | React Router and TanStack Query on the frontend                           | Query owns loading, error and refetch state, so publishing an item refreshes the dashboard and the item view on its own — no screen has to remember to refetch. Router keeps `/content/:id` a real URL that survives a refresh. Two dependencies instead of hand-rolled `useEffect` fetching in every screen.                       |
 | 2026-11-12 | One plain CSS stylesheet, no CSS framework                                | Five screens do not need a framework or a build plugin. Tokens live in `:root` and the markup stays readable. Would not scale to a large app; it is not meant to.                                                                                                                                                                   |
 | 2026-11-12 | Login is a user picker; the choice sits in `sessionStorage`               | Matches the mocked backend auth — no passwords exist, so "signing in" is choosing who you are. `sessionStorage` stops a refresh from logging you out. Swapping in real auth means replacing `AuthProvider` and the `x-user-id` header in `lib/api.ts`.                                                                              |
@@ -250,4 +271,6 @@ Most editors pick up `.prettierrc` automatically. For format-on-save in VS Code,
 | `ERR_PNPM_IGNORED_BUILDS`                                             | See step 4.                                                                                                                                      |
 | `pnpm: command not found`                                             | Open a new terminal after step 2, or check that pnpm's bin folder (`~/Library/pnpm` on macOS, `~/.local/share/pnpm` on Linux) is on your `PATH`. |
 | `typescript-eslint does not support TS 7.0`                           | The root `typescript` devDependency must stay on 6.x — that's the version ESLint parses with. Package builds are unaffected.                     |
+| Port `3000` already in use                                            | A Docker `backend` container and a local `pnpm dev` cannot both have it. Run `docker compose stop backend`, or stop the local one.               |
+| App loads but your code changes are missing                           | You are on Option A. The image is stale: `docker compose up -d --build frontend`, then hard-reload the browser.                                  |
 | Port `5432` already in use                                            | Another Postgres is running. Stop it, or change the port mapping in `docker-compose.yaml` to `"5433:5432"` and use `5433` in `DATABASE_URL`.     |
