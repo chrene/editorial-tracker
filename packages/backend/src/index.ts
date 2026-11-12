@@ -11,9 +11,11 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+// Public: the login screen reads this before anyone is signed in.
+app.use('/api/users', userRouter);
+
 // Everything past this point needs an x-user-id header.
 app.use('/api', mockAuth);
-app.use('/api/users', userRouter);
 app.use('/api/content', contentRouter);
 
 // Express 5 forwards rejected promises from async handlers here, so routes
