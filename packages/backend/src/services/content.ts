@@ -84,16 +84,24 @@ export async function history(user: User, id: string): Promise<AuditEntry[]> {
   }));
 }
 
+/**
+ * Every write below commits the row and its audit entry in one transaction. An
+ * item must never end up changed with no history entry explaining it — a log
+ * with holes is worse than no log, because you cannot tell which it is.
+ */
+
 export async function create(user: User, input: CreateContentInput): Promise<ContentItem> {
-  // New items always start at `idea`. Status only ever moves through
-  // `updateStatus`, the single place the state machine is enforced.
-  const row = await db.contentItem.create({
-    data: { ...input, createdBy: user.id, updatedBy: user.id },
+  return db.$transaction(async (tx) => {
+    // New items always start at `idea`. Status only ever moves through
+    // `updateStatus`, the single place the state machine is enforced.
+    const row = await tx.contentItem.create({
+      data: { ...input, createdBy: user.id, updatedBy: user.id },
+    });
+
+    await record(row.id, user.id, 'created', null, tx);
+
+    return toContentItem(row);
   });
-
-  await record(row.id, user.id, 'created');
-
-  return toContentItem(row);
 }
 
 export async function update(
@@ -128,19 +136,16 @@ export async function updateStatus(
 export async function remove(user: User, id: string): Promise<void> {
   await get(user, id);
 
-  await db.contentItem.delete({ where: { id } });
+  await db.$transaction(async (tx) => {
+    await tx.contentItem.delete({ where: { id } });
 
-  // The log keeps its rows: `audit_log.content_item_id` is not a relation
-  // precisely so history survives the item it describes.
-  await record(id, user.id, 'deleted');
+    // The log keeps its rows: `audit_log.content_item_id` is not a relation
+    // precisely so history survives the item it describes.
+    await record(id, user.id, 'deleted', null, tx);
+  });
 }
 
-/**
- * Writes a patch and records what changed. The only write path.
- *
- * Both happen in one transaction: an item must never end up changed with no
- * history entry explaining it, which is the whole point of keeping the log.
- */
+/** Writes a patch and records what changed. The only path for edits. */
 async function save(user: User, before: ContentItem, patch: ContentPatch): Promise<ContentItem> {
   return db.$transaction(async (tx) => {
     const row = await tx.contentItem.update({

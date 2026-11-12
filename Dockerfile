@@ -20,6 +20,15 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # --- Express ---
+#
+# The server runs its TypeScript directly through tsx rather than compiling to
+# JavaScript first. That keeps one source of truth and no build step, which is
+# the right trade for a demo — but it costs: tsx is a devDependency, so the
+# image keeps the whole dev toolchain and weighs ~970MB against the frontend's
+# 50MB. A real deployment would compile here and ship only production deps.
+#
+# NODE_ENV must stay below the install above: pnpm skips devDependencies when
+# it is already "production", and tsx would then be missing at boot.
 FROM base AS backend
 WORKDIR /app/packages/backend
 ENV NODE_ENV=production
