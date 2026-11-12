@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "docker:up": "docker compose up -d --build",
+    "docker:rebuild": "docker compose up -d --build backend frontend",
     "docker:setup": "docker compose exec backend pnpm db:push && docker compose exec backend pnpm db:seed",
     "docker:start": "pnpm docker:up && pnpm docker:setup",
     "docker:db": "docker compose up -d db",
