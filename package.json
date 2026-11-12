@@ -8,7 +8,13 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "docker:up": "docker compose up -d --build",
+    "docker:setup": "docker compose exec backend pnpm db:push && docker compose exec backend pnpm db:seed",
+    "docker:start": "pnpm docker:up && pnpm docker:setup",
+    "docker:db": "docker compose up -d db",
+    "docker:logs": "docker compose logs -f",
+    "docker:down": "docker compose down"
   },
   "devEngines": {
     "packageManager": {

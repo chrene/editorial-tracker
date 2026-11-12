@@ -9,23 +9,28 @@ the repo and I can explain any of it.
 
 ## Quickstart
 
-From a clean checkout, with Docker running:
+From a clean checkout, with Docker running and pnpm installed:
 
 ```bash
-docker compose up -d --build        # app, API and Postgres
-cd packages/backend
-pnpm install
-DATABASE_URL=postgres://editorial:editorial@localhost:5432/editorial_tracker \
-  pnpm db:push                      # create the tables
-DATABASE_URL=postgres://editorial:editorial@localhost:5432/editorial_tracker \
-  pnpm db:seed                      # add the three demo users
+pnpm docker:start
 ```
 
-Open **http://localhost:8080** and sign in as **Edith Ortega** (editor).
+That builds and starts the app, API and Postgres, creates the tables and adds
+the three demo users. Open **http://localhost:8080** and sign in as
+**Edith Ortega** (editor).
 
-> `db:push` and `db:seed` are required. `docker compose up` starts the services
-> but leaves the database empty, so without them the login screen loads (its
-> roster is hardcoded) and the first content request then fails.
+| Script              | Does                                                       |
+| ------------------- | ---------------------------------------------------------- |
+| `pnpm docker:start` | `docker:up` followed by `docker:setup`                     |
+| `pnpm docker:up`    | Build and start all three services                         |
+| `pnpm docker:setup` | Create the tables and seed the demo users (safe to re-run) |
+| `pnpm docker:db`    | Start only Postgres, for local development with `pnpm dev` |
+| `pnpm docker:logs`  | Follow the logs of all services                            |
+| `pnpm docker:down`  | Stop and remove the containers; the data volume is kept    |
+
+> `docker:up` alone leaves a new database empty: the login screen loads (its
+> roster is hardcoded) and the first content request then fails. Run
+> `docker:setup` once, or use `docker:start`.
 
 ### A two-minute tour
 
