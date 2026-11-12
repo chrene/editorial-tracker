@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import {
   CONTENT_TYPES,
   type ContentItem,
+  type ContentStatus,
   type ContentType,
   type User,
 } from '@editorial-tracker/shared';
@@ -104,9 +105,9 @@ function Actions({ item }: { item: ContentItem }) {
   const setStatus = useSetStatus(item.id);
   const next = allowedNextStatuses(item.status);
 
-  if (next.length === 0) {
-    return <p className="muted small">This item is archived. Nothing further can change.</p>;
-  }
+  // No status is terminal today, but the table in `status.ts` is meant to be
+  // edited, so a status with nowhere to go still renders sensibly.
+  if (next.length === 0) return null;
 
   return (
     <section className="actions">
@@ -121,7 +122,7 @@ function Actions({ item }: { item: ContentItem }) {
             disabled={setStatus.isPending}
             onClick={() => setStatus.mutate(status)}
           >
-            {label(status)}
+            {label(item.status, status)}
           </button>
         ))}
       </div>
@@ -131,10 +132,12 @@ function Actions({ item }: { item: ContentItem }) {
   );
 }
 
-function label(status: string): string {
-  if (status === 'published') return 'Publish';
-  if (status === 'archived') return 'Archive';
-  return `Move to ${status}`;
+/** Button wording. Restoring an archived item is not the same act as publishing. */
+function label(from: ContentStatus, to: ContentStatus): string {
+  if (from === 'archived') return to === 'published' ? 'Restore' : 'Send back to draft';
+  if (to === 'published') return 'Publish';
+  if (to === 'archived') return 'Archive';
+  return `Move to ${to}`;
 }
 
 function EditForm({ item }: { item: ContentItem }) {

@@ -14,7 +14,8 @@ export const STATUS_TRANSITIONS: Record<ContentStatus, readonly ContentStatus[]>
   draft: ['idea', 'review'],
   review: ['draft', 'published'],
   published: ['archived'],
-  archived: [],
+  // Archiving is reversible: restore the item, or send it back for rework.
+  archived: ['published', 'draft'],
 };
 
 /**

@@ -144,25 +144,34 @@ async function save(user: User, before: ContentItem, patch: ContentPatch): Promi
 }
 
 /**
- * The new status, plus the timestamp recording the move.
+ * The new status, plus the timestamps that record the move.
  *
- * `publishedAt` and `archivedAt` are written *by* the transition and never read
- * back to work out the status, so an item can never sit on `review` while
- * carrying a publish timestamp.
+ * A stamp is written when the item *enters* that status and cleared when it
+ * leaves, so the stamps can never contradict the status — an unarchived item
+ * does not keep claiming it was archived. `status` is still the only thing read
+ * to decide where an item stands; the stamps only say when and by whom.
  */
 function statusChange(user: User, before: ContentItem, next: ContentStatus): ContentPatch {
   const problem = transitionError(before.status, next);
   if (problem) throw createError.Conflict(problem);
 
   const now = new Date();
+  const patch: ContentPatch = { status: next };
 
-  if (next === 'published' && before.status !== 'published') {
-    return { status: next, publishedAt: now, publishedBy: user.id };
+  if (next === 'published') {
+    patch.publishedAt = now;
+    patch.publishedBy = user.id;
   }
-  if (next === 'archived' && before.status !== 'archived') {
-    return { status: next, archivedAt: now, archivedBy: user.id };
+
+  if (next === 'archived') {
+    patch.archivedAt = now;
+    patch.archivedBy = user.id;
+  } else if (before.status === 'archived') {
+    patch.archivedAt = null;
+    patch.archivedBy = null;
   }
-  return { status: next };
+
+  return patch;
 }
 
 /** Names what happened. Publishing and archiving outrank a plain status move. */
