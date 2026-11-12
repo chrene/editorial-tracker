@@ -10,7 +10,7 @@ import {
 } from '@editorial-tracker/shared';
 import { db } from '../db.js';
 import { toContentItem } from '../serialize.js';
-import { diff, record } from '../audit.js';
+import { diff, writeAuditEntry } from '../audit.js';
 import type { CreateContentInput, UpdateContentInput } from '../validation.js';
 
 type ContentPatch = Prisma.ContentItemUncheckedUpdateInput;
@@ -62,7 +62,7 @@ export async function create(user: User, input: CreateContentInput): Promise<Con
       data: { ...input, createdBy: user.id, updatedBy: user.id },
     });
 
-    await record(row.id, user.id, 'created', null, tx);
+    await writeAuditEntry(tx, { contentItemId: row.id, actorId: user.id, action: 'created' });
 
     return toContentItem(row);
   });
@@ -96,7 +96,7 @@ export async function remove(user: User, id: string): Promise<void> {
   await db.$transaction(async (tx) => {
     await tx.contentItem.delete({ where: { id } });
 
-    await record(id, user.id, 'deleted', null, tx);
+    await writeAuditEntry(tx, { contentItemId: id, actorId: user.id, action: 'deleted' });
   });
 }
 
@@ -111,7 +111,12 @@ async function save(user: User, before: ContentItem, patch: ContentPatch): Promi
 
     const changes = diff(before, after);
     if (Object.keys(changes).length > 0) {
-      await record(before.id, user.id, actionFor(before, after), changes, tx);
+      await writeAuditEntry(tx, {
+        contentItemId: before.id,
+        actorId: user.id,
+        action: actionFor(before, after),
+        changes,
+      });
     }
 
     return after;

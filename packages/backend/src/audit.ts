@@ -1,8 +1,12 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import type { AuditAction, Changes, ContentItem } from '@editorial-tracker/shared';
-import { db } from './db.js';
 
-type Db = PrismaClient | Prisma.TransactionClient;
+interface AuditEntryInput {
+  contentItemId: string;
+  actorId: string;
+  action: AuditAction;
+  changes?: Changes;
+}
 
 const FIELDS_A_PERSON_EDITS = ['title', 'type', 'status', 'authorIds', 'deadline'] as const;
 
@@ -10,8 +14,8 @@ function isSameValueEvenForArrays(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function asPrismaJson(changes: Changes | null): Prisma.InputJsonValue | undefined {
-  return (changes ?? undefined) as Prisma.InputJsonValue | undefined;
+function asPrismaJson(changes: Changes | undefined): Prisma.InputJsonValue | undefined {
+  return changes as Prisma.InputJsonValue | undefined;
 }
 
 export function diff(before: ContentItem, after: ContentItem): Changes {
@@ -29,14 +33,11 @@ export function diff(before: ContentItem, after: ContentItem): Changes {
   return changes;
 }
 
-export async function record(
-  contentItemId: string,
-  actorId: string,
-  action: AuditAction,
-  changes: Changes | null = null,
-  client: Db = db,
+export async function writeAuditEntry(
+  tx: Prisma.TransactionClient,
+  entry: AuditEntryInput,
 ): Promise<void> {
-  await client.auditLog.create({
-    data: { contentItemId, actorId, action, changes: asPrismaJson(changes) },
+  await tx.auditLog.create({
+    data: { ...entry, changes: asPrismaJson(entry.changes) },
   });
 }
