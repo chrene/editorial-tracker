@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '@editorial-tracker/shared';
-import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
+import { useUsers } from '../lib/queries.js';
 
 /**
  * Simulated login. There are no passwords — the backend's user list is
@@ -13,15 +12,7 @@ export function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api
-      .users()
-      .then(setUsers)
-      .catch(() => setError('Could not reach the API.'));
-  }, []);
+  const { data: users = [], isError } = useUsers();
 
   function choose(user: User) {
     signIn(user);
@@ -34,7 +25,7 @@ export function Login() {
         <h1>Editorial Tracker</h1>
         <p className="muted">Sign in as one of the demo users. No password needed.</p>
 
-        {error && <p className="error">{error}</p>}
+        {isError && <p className="error">Could not reach the API.</p>}
 
         <ul className="user-list">
           {users.map((user) => (
