@@ -11,8 +11,9 @@
  * unions so the frontend can iterate them — status filters and the type
  * dropdown are built from these exact lists. They are duplicated in
  * `schema.prisma`, because this package must stay free of `@prisma/client`
- * for the browser; `backend/src/enum-contract.ts` fails the build if the two
- * ever disagree.
+ * for the browser; `backend/src/schema-contract.ts` fails the build if the two
+ * ever disagree — it checks the enum members and the field names, while
+ * leaving each side to type its own values.
  */
 
 // --- Enums -----------------------------------------------------------------

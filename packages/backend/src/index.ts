@@ -1,7 +1,7 @@
 import express from 'express';
 
-// Type-only: fails the build if shared and schema.prisma disagree on an enum.
-import './enum-contract.js';
+// Type-only: fails the build if the wire types and schema.prisma drift apart.
+import './schema-contract.js';
 import { mockAuth } from './auth.js';
 import { errorHandler } from './middleware/errors.js';
 import { contentRouter } from './routes/content.js';
