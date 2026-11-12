@@ -68,14 +68,26 @@ If `pnpm install` or `pnpm add` fails with `ERR_PNPM_IGNORED_BUILDS`:
 
 ## Running locally
 
-### Option A: everything in Docker
+## Option a: Docker
 
-```bash
-docker compose up -d --build
-```
+Run from the repo root.
 
-- App: http://localhost:8080
-- API: http://localhost:3000/api/health
+| Task                                    | Command                                                         |
+| --------------------------------------- | --------------------------------------------------------------- |
+| Start everything (rebuild images)       | `docker compose up -d --build`                                  |
+| Start only Postgres                     | `docker compose up -d db`                                       |
+| Show running services                   | `docker compose ps`                                             |
+| Follow logs for all services            | `docker compose logs -f`                                        |
+| Follow logs for one service             | `docker compose logs -f backend`                                |
+| Rebuild and restart one service         | `docker compose up -d --build backend`                          |
+| Restart one service (no rebuild)        | `docker compose restart backend`                                |
+| Open a Postgres shell                   | `docker compose exec db psql -U editorial -d editorial_tracker` |
+| Stop and remove containers (keeps data) | `docker compose down`                                           |
+| Stop and **delete the database**        | `docker compose down -v`                                        |
+
+Service names: `db`, `backend`, `frontend`.
+
+> `docker compose down -v` deletes the `pgdata` volume. All database data is lost and cannot be recovered.
 
 ### Option B: apps on your machine, Postgres in Docker
 
