@@ -116,3 +116,9 @@ Temporary Items
 # Personal Claude Code setup - not part of the project
 .claude/skills/
 .claude/settings.local.json
+
+# Editor and local files
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea

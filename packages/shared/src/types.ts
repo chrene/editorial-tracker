@@ -7,9 +7,10 @@
  * `packages/backend/prisma/schema.prisma`, and the backend maps between the two
  * in `serialize.ts`.
  *
- * The enums below are declared as `as const` arrays rather than TypeScript
- * unions so the frontend can iterate them — status filters and the type
- * dropdown are built from these exact lists. They are duplicated in
+ * `CONTENT_TYPES` and `CONTENT_STATUSES` are `as const` arrays because the
+ * frontend iterates them to build the status filters and the type dropdown.
+ * `Role` and `AuditAction` are plain unions — nothing lists those. All four are
+ * duplicated in
  * `schema.prisma`, because this package must stay free of `@prisma/client`
  * for the browser; `backend/src/schema-contract.ts` fails the build if the two
  * ever disagree — it checks the enum members and the field names, while
@@ -24,18 +25,10 @@ export type ContentType = (typeof CONTENT_TYPES)[number];
 export const CONTENT_STATUSES = ['idea', 'draft', 'review', 'published', 'archived'] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 
-export const ROLES = ['editor', 'contributor'] as const;
-export type Role = (typeof ROLES)[number];
+export type Role = 'editor' | 'contributor';
 
-export const AUDIT_ACTIONS = [
-  'created',
-  'updated',
-  'status_changed',
-  'published',
-  'archived',
-  'deleted',
-] as const;
-export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+export type AuditAction =
+  'created' | 'updated' | 'status_changed' | 'published' | 'archived' | 'deleted';
 
 // --- Records ---------------------------------------------------------------
 
