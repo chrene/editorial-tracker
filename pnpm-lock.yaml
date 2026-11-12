@@ -190,6 +190,9 @@ importers:
 
   packages/frontend:
     dependencies:
+      '@editorial-tracker/shared':
+        specifier: workspace:*
+        version: link:../shared
       react:
         specifier: ^19.3.1
         version: 19.3.1
