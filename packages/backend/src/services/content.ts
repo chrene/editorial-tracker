@@ -24,11 +24,17 @@ import type { CreateContentInput, UpdateContentInput } from '../validation.js';
 type ContentPatch = Prisma.ContentItemUncheckedUpdateInput;
 
 /**
- * Restricts a query to the rows a user may see. Editors get everything, which
- * is why this returns `{}` — Prisma reads that as "no filter".
+ * Who may reach a content item — the only statement of that rule in the system.
  *
- * Contributors are filtered in SQL rather than after the fetch, so a future
- * `take` cannot quietly count rows the user is not allowed to see.
+ * An editor reaches everything. A contributor reaches an item they created or
+ * are assigned to as an author; assigning someone is therefore how work is
+ * handed over, not a label. Viewing and managing are the same rule on purpose:
+ * a contributor who can see an item can always change it.
+ *
+ * It is a database filter rather than a predicate run after fetching, so the
+ * list and single-item reads share it exactly, and a future `take` cannot
+ * quietly count rows the user is not allowed to see. Editors get `{}`, which
+ * Prisma reads as "no filter".
  */
 function visibleTo(user: User): Prisma.ContentItemWhereInput {
   if (user.role === 'editor') return {};
