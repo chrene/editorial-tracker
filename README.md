@@ -1,5 +1,12 @@
 # editorial-tracker
 
+## Use of AI
+
+I used Claude AI to help write the code and files in this repository. The architectural
+decisions are mine: the workspace layout, the split between frontend, backend and shared,
+the choice of tools, and how the pieces fit together. I reviewed everything that landed in
+the repo and I can explain any of it.
+
 ## Workspace
 
 pnpm workspace with three packages:
