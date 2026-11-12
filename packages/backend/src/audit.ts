@@ -1,12 +1,9 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
-import type { AuditAction, ContentItem } from '@editorial-tracker/shared';
+import type { AuditAction, Changes, ContentItem } from '@editorial-tracker/shared';
 import { db } from './db.js';
 
 /** Either the client or an open transaction, so callers can group writes. */
 type Db = PrismaClient | Prisma.TransactionClient;
-
-/** What changed, as `{ field: { from, to } }`. */
-export type Changes = Record<string, { from: unknown; to: unknown }>;
 
 /**
  * Fields worth a before/after entry. `updatedAt` and `updatedBy` are left out:
