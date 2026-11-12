@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import type { AuditAction, ContentItem } from '@editorial-tracker/shared';
 import { db } from './db.js';
 
@@ -37,6 +38,14 @@ export async function record(
   changes: Changes | null = null,
 ): Promise<void> {
   await db.auditLog.create({
-    data: { contentItemId, actorId, action, changes: changes ?? undefined },
+    data: {
+      contentItemId,
+      actorId,
+      action,
+      // The values came out of `diff`, which only keeps fields it could compare
+      // with JSON.stringify — so they are JSON by construction. Prisma's input
+      // type cannot see that, hence the cast.
+      changes: (changes ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
   });
 }

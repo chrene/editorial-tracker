@@ -1,7 +1,7 @@
 /**
  * Frontend-safe entry point: types and rules only, no database driver.
- * The Drizzle schema is published separately as `@editorial-tracker/shared/schema`
- * so importing domain rules here never pulls `drizzle-orm` into the browser bundle.
+ * The database schema lives in the backend (`prisma/schema.prisma`),
+ * so importing domain rules here never pulls a database driver into the browser.
  */
 export * from './types.js';
 export * from './status.js';

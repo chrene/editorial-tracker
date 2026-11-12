@@ -9,6 +9,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/backend/package.json packages/backend/
 COPY packages/frontend/package.json packages/frontend/
+
+# Prisma's postinstall runs `prisma generate`, which needs the schema and its
+# config — so both must be here before the install, not with the rest of the source.
+COPY packages/backend/prisma packages/backend/prisma
+COPY packages/backend/prisma.config.ts packages/backend/
+
 RUN pnpm install --frozen-lockfile
 
 COPY . .
